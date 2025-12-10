@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Administración</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <h1>📰 Panel de Administración</h1>
+            <p class="subtitle">Gestiona tu sitio web</p>
+        </div>
+    </header>
+
+    <main class="dashboard-container">
+        <!-- Sidebar de navegación -->
+        <aside class="dashboard-sidebar">
+            <nav class="dashboard-nav">
+                <a href="#" class="nav-item active" data-section="noticias">
+                    <span class="nav-icon">📋</span>
+                    <span class="nav-text">Noticias</span>
+                </a>
+                <a href="#" class="nav-item" data-section="galeria">
+                    <span class="nav-icon">🖼️</span>
+                    <span class="nav-text">Galería</span>
+                </a>
+                <a href="index.html" class="nav-item">
+                    <span class="nav-icon">🏠</span>
+                    <span class="nav-text">Ver Sitio</span>
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Contenido Principal -->
+        <div class="dashboard-content">
+            <!-- Sección de Noticias -->
+            <section class="dashboard-section active" id="section-noticias">
+                <div class="section-header">
+                    <h2>Gestionar Noticias</h2>
+                    <button id="btn-nueva-noticia" class="btn btn-primary btn-large">
+                        ➕ Nueva Noticia
+                    </button>
+                </div>
+
+                <!-- Modal para crear/editar noticia -->
+                <div id="modal-noticia" class="modal">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h3 id="modal-titulo">Nueva Noticia</h3>
+                            <button class="modal-close" id="modal-close">&times;</button>
+                        </div>
+                        <form id="news-form" enctype="multipart/form-data" class="modal-form">
+                            <div class="form-group">
+                                <label for="news-title">Título *</label>
+                                <input type="text" id="news-title" placeholder="Título de la noticia" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="news-date">Fecha de publicación *</label>
+                                <input type="date" id="news-date" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="news-description">Descripción *</label>
+                                <textarea id="news-description" placeholder="Descripción de la noticia" required rows="6"></textarea>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="news-image">Imagen (opcional)</label>
+                                <div class="file-input-wrapper">
+                                    <input type="file" id="news-image" accept="image/*" class="file-input">
+                                    <label for="news-image" class="file-label">Seleccionar imagen</label>
+                                    <span id="file-name" class="file-name">Ningún archivo seleccionado</span>
+                                </div>
+                                <div id="image-preview" class="image-preview"></div>
+                            </div>
+
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-success">Guardar Noticia</button>
+                                <button type="button" id="form-cancel" class="btn btn-secondary">Cancelar</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Tabla de noticias -->
+                <div class="table-wrapper">
+                    <table class="noticias-table">
+                        <thead>
+                            <tr>
+                                <th>Imagen</th>
+                                <th>Título</th>
+                                <th>Fecha</th>
+                                <th>Descripción</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-news-list">
+                            <tr>
+                                <td colspan="5" class="text-center">Cargando noticias...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Sección de Galería -->
+            <section class="dashboard-section" id="section-galeria">
+                <div class="section-header">
+                    <h2>Gestor de Fotos</h2>
+                    <button id="btn-subir-foto" class="btn btn-primary btn-large">
+                        📤 Subir Foto
+                    </button>
+                </div>
+
+                <!-- Modal para subir foto -->
+                <div id="modal-foto" class="modal">
+                    <div class="modal-content modal-foto-content">
+                        <div class="modal-header">
+                            <h3>Subir Foto</h3>
+                            <button class="modal-close" id="modal-foto-close">&times;</button>
+                        </div>
+                        <form id="foto-form" enctype="multipart/form-data" class="modal-form">
+                            <div class="form-group">
+                                <label for="foto-titulo">Título de la foto</label>
+                                <input type="text" id="foto-titulo" placeholder="Ej: Evento del mes">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="foto-file">Foto *</label>
+                                <div class="file-input-wrapper">
+                                    <input type="file" id="foto-file" accept="image/*" class="file-input" required>
+                                    <label for="foto-file" class="file-label">Seleccionar foto</label>
+                                    <span id="foto-file-name" class="file-name">Ningún archivo seleccionado</span>
+                                </div>
+                                <div id="foto-preview" class="image-preview"></div>
+                            </div>
+
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-success">Subir Foto</button>
+                                <button type="button" id="foto-form-cancel" class="btn btn-secondary">Cancelar</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Galería de fotos -->
+                <div class="galeria-grid" id="galeria-grid">
+                    <p class="text-center" style="grid-column: 1 / -1;">Cargando fotos...</p>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <script src="js/app.js"></script>
+</body>
+</html>
