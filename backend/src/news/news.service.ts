@@ -10,7 +10,11 @@ export interface NewsItem {
   image?: string | null;
 }
 
-const NEWS_FILE = path.join(process.cwd(), 'data', 'news.json');
+// Calcular la ruta correcta del archivo news.json
+// Cuando se ejecuta con ts-node dev, __dirname es 'backend/src/news'
+// Cuando se ejecuta compilado, __dirname es 'backend/dist/news'
+// En ambos casos, ir 3 niveles arriba nos lleva a faen_web/
+const NEWS_FILE = path.resolve(__dirname, '../../../data/news.json');
 
 @Injectable()
 export class NewsService {
@@ -21,9 +25,15 @@ export class NewsService {
   }
 
   findAll(): NewsItem[] {
-    this.ensureFile();
-    const raw = fs.readFileSync(NEWS_FILE, 'utf8');
-    return JSON.parse(raw);
+    try {
+      this.ensureFile();
+      const raw = fs.readFileSync(NEWS_FILE, 'utf8');
+      return JSON.parse(raw);
+    } catch (err) {
+      console.error('Error en findAll():', err.message);
+      console.error('NEWS_FILE path:', NEWS_FILE);
+      throw err;
+    }
   }
 
   findOne(id: string): NewsItem | undefined {
