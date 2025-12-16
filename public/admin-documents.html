@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Documentos - FAEN</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; background: #f5f5f5; margin: 0; padding: 0; }
+        .admin-container { max-width: 1000px; margin: 0 auto; padding: 20px; background: white; min-height: 100vh; }
+        .admin-header { margin-bottom: 30px; }
+        .admin-header h1 { margin: 0 0 10px 0; color: #333; }
+        .admin-header p { margin: 0; color: #666; font-size: 14px; }
+        
+        .tab-nav { display: flex; gap: 0; margin-bottom: 20px; border-bottom: 2px solid #ddd; }
+        .tab-nav button { 
+            padding: 12px 20px; 
+            border: none; 
+            background: transparent; 
+            cursor: pointer; 
+            font-size: 14px; 
+            color: #666; 
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+        }
+        .tab-nav button:hover { color: #007bff; }
+        .tab-nav button.active { 
+            color: #007bff; 
+            border-bottom-color: #007bff; 
+            background: #f9f9f9;
+        }
+        
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        
+        .form-group { margin-bottom: 20px; }
+        label { 
+            display: block; 
+            margin-bottom: 8px; 
+            font-weight: bold; 
+            color: #333; 
+            font-size: 14px;
+        }
+        input[type="text"], input[type="file"], select, textarea {
+            width: 100%; 
+            padding: 10px; 
+            border: 1px solid #ddd; 
+            border-radius: 4px; 
+            font-size: 14px;
+            font-family: Arial, sans-serif;
+        }
+        input[type="text"]:focus, input[type="file"]:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+        }
+        textarea { resize: vertical; min-height: 100px; }
+        
+        .button-group { display: flex; gap: 10px; margin-top: 20px; }
+        button { 
+            background: #007bff; 
+            color: white; 
+            padding: 10px 20px; 
+            border: none; 
+            border-radius: 4px; 
+            cursor: pointer; 
+            font-size: 14px;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+        button:hover { background: #0056b3; }
+        button.delete { background: #dc3545; }
+        button.delete:hover { background: #c82333; }
+        button.secondary { background: #6c757d; }
+        button.secondary:hover { background: #5a6268; }
+        
+        .document-card {
+            border: 1px solid #ddd; 
+            padding: 15px; 
+            margin-bottom: 15px; 
+            border-radius: 4px; 
+            background: #f9f9f9;
+        }
+        .document-card h3 { margin: 0 0 10px 0; color: #333; }
+        .document-card p { margin: 0 0 10px 0; color: #666; font-size: 14px; }
+        .document-meta { font-size: 12px; color: #999; margin-bottom: 10px; }
+        .category-badge { 
+            display: inline-block; 
+            background: #e9ecef; 
+            padding: 4px 8px; 
+            border-radius: 3px; 
+            font-size: 12px;
+            color: #495057;
+            margin-bottom: 10px;
+        }
+        .document-actions { margin-top: 10px; display: flex; gap: 10px; }
+        .document-actions button { padding: 6px 12px; font-size: 12px; margin: 0; }
+        .documents-list { margin-top: 20px; }
+        .empty { text-align: center; color: #999; padding: 40px; font-size: 14px; }
+        
+        .message { 
+            padding: 12px; 
+            margin-bottom: 20px; 
+            border-radius: 4px; 
+            font-size: 14px;
+            display: none;
+        }
+        .message.success { 
+            background: #d4edda; 
+            color: #155724; 
+            border: 1px solid #c3e6cb;
+            display: block;
+        }
+        .message.error { 
+            background: #f8d7da; 
+            color: #721c24; 
+            border: 1px solid #f5c6cb;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-container">
+        <div class="admin-header">
+            <h1>📄 Administración de Documentos</h1>
+            <p>Carga y gestiona documentos PDF como constancias, modelos de notas y guías</p>
+        </div>
+        
+        <div class="tab-nav">
+            <button class="active" onclick="switchTab(event, 'form-tab')">+ Agregar Documento</button>
+            <button onclick="switchTab(event, 'list-tab')">📋 Ver Documentos</button>
+            <button class="secondary" onclick="logout()" style="margin-left: auto; background: #6c757d;">🚪 Salir</button>
+        </div>
+
+        <!-- Tab: Agregar Documento -->
+        <div id="form-tab" class="tab-content active">
+            <h2>Agregar Nuevo Documento</h2>
+            <div id="message" class="message"></div>
+            <form id="documentForm">
+                <div class="form-group">
+                    <label for="title">Título del Documento:</label>
+                    <input type="text" id="title" name="title" placeholder="Ej: Constancia de Inscripción" required>
+                </div>
+                <div class="form-group">
+                    <label for="description">Descripción:</label>
+                    <textarea id="description" name="description" placeholder="Describe brevemente el contenido del documento..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="category">Categoría:</label>
+                    <select id="category" name="category" required>
+                        <option value="constancias">Constancias</option>
+                        <option value="notas">Modelo de Notas</option>
+                        <option value="guias">Guías de Ayuda</option>
+                        <option value="otros">Otros</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="file">Archivo PDF:</label>
+                    <input type="file" id="file" name="file" accept=".pdf" required>
+                    <small style="color: #666; font-size: 12px;">Máximo 50MB</small>
+                </div>
+                <div class="button-group">
+                    <button type="submit">Subir Documento</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Tab: Listar Documentos -->
+        <div id="list-tab" class="tab-content">
+            <h2>Documentos Cargados</h2>
+            <div class="form-group">
+                <label for="filterCategory">Filtrar por categoría:</label>
+                <select id="filterCategory" onchange="filterDocuments()">
+                    <option value="">Todos</option>
+                    <option value="constancias">Constancias</option>
+                    <option value="notas">Modelo de Notas</option>
+                    <option value="guias">Guías de Ayuda</option>
+                    <option value="otros">Otros</option>
+                </select>
+            </div>
+            <div id="documentsList" class="documents-list"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:3000/api';
+        let credentials = null;
+
+        // Verificar autenticación al cargar
+        window.addEventListener('load', () => {
+            if (!credentials) {
+                const user = prompt('Usuario:');
+                const pass = prompt('Contraseña:');
+                if (user && pass) {
+                    credentials = btoa(user + ':' + pass);
+                } else {
+                    alert('Autenticación cancelada');
+                    window.location.href = 'index.html';
+                }
+            }
+        });
+
+        function switchTab(event, tabName) {
+            event.preventDefault();
+            
+            // Ocultar todos los tabs
+            document.querySelectorAll('.tab-content').forEach(el => {
+                el.classList.remove('active');
+            });
+            
+            // Desactivar todos los botones
+            document.querySelectorAll('.tab-nav button').forEach(el => {
+                el.classList.remove('active');
+            });
+            
+            // Mostrar el tab seleccionado
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+            
+            // Si es el tab de lista, cargar documentos
+            if (tabName === 'list-tab') {
+                loadDocuments();
+            }
+        }
+
+        document.getElementById('documentForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData();
+            formData.append('title', document.getElementById('title').value);
+            formData.append('description', document.getElementById('description').value);
+            formData.append('category', document.getElementById('category').value);
+            formData.append('file', document.getElementById('file').files[0]);
+
+            try {
+                const response = await fetch(`${API_BASE}/documents`, {
+                    method: 'POST',
+                    headers: { 'Authorization': 'Basic ' + credentials },
+                    body: formData
+                });
+                
+                if (response.ok) {
+                    showMessage('✓ Documento cargado exitosamente', 'success');
+                    document.getElementById('documentForm').reset();
+                    setTimeout(() => {
+                        document.getElementById('documentForm').reset();
+                    }, 1000);
+                } else {
+                    const error = await response.json().catch(() => ({ message: 'Error desconocido' }));
+                    showMessage('✗ Error: ' + (error.message || 'Error al cargar el documento'), 'error');
+                }
+            } catch (err) {
+                showMessage('✗ Error de conexión: ' + err.message, 'error');
+            }
+        });
+
+        async function loadDocuments() {
+            try {
+                const response = await fetch(`${API_BASE}/documents`);
+                const documents = await response.json();
+                displayDocuments(documents);
+            } catch (err) {
+                console.error('Error al cargar documentos:', err);
+                document.getElementById('documentsList').innerHTML = '<div class="empty">Error al cargar los documentos</div>';
+            }
+        }
+
+        function displayDocuments(documents) {
+            const list = document.getElementById('documentsList');
+            if (documents.length === 0) {
+                list.innerHTML = '<div class="empty">No hay documentos cargados aún</div>';
+                return;
+            }
+            list.innerHTML = documents.map(doc => `
+                <div class="document-card">
+                    <h3>${doc.title}</h3>
+                    <p>${doc.description || 'Sin descripción'}</p>
+                    <span class="category-badge">${doc.category}</span>
+                    <div class="document-meta">
+                        📅 Subido: ${new Date(doc.uploadedAt).toLocaleDateString()} | 
+                        📄 ${doc.fileName}
+                    </div>
+                    <div class="document-actions">
+                        <a href="${doc.filePath}" target="_blank" style="text-decoration: none;">
+                            <button type="button">👁️ Ver PDF</button>
+                        </a>
+                        <a href="${doc.filePath}" download style="text-decoration: none;">
+                            <button type="button">⬇️ Descargar</button>
+                        </a>
+                        <button type="button" class="delete" onclick="deleteDocument('${doc.id}')">🗑️ Eliminar</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function filterDocuments() {
+            const category = document.getElementById('filterCategory').value;
+            const cards = document.querySelectorAll('.document-card');
+            cards.forEach(card => {
+                const badge = card.querySelector('.category-badge');
+                if (!category || badge.textContent.trim() === category) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+
+        async function deleteDocument(id) {
+            if (!confirm('¿Deseas eliminar este documento? Esta acción no se puede deshacer.')) return;
+            try {
+                const response = await fetch(`${API_BASE}/documents/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': 'Basic ' + credentials }
+                });
+                if (response.ok) {
+                    loadDocuments();
+                    showMessage('✓ Documento eliminado correctamente', 'success');
+                } else {
+                    showMessage('✗ Error al eliminar el documento', 'error');
+                }
+            } catch (err) {
+                showMessage('✗ Error: ' + err.message, 'error');
+            }
+        }
+
+        function showMessage(msg, type) {
+            const msgEl = document.getElementById('message');
+            msgEl.textContent = msg;
+            msgEl.className = 'message ' + type;
+            setTimeout(() => { 
+                msgEl.textContent = ''; 
+                msgEl.className = 'message';
+            }, 4000);
+        }
+
+        function logout() {
+            if (confirm('¿Deseas cerrar sesión?')) {
+                credentials = null;
+                window.location.href = 'index.html';
+            }
+        }
+    </script>
+</body>
+</html>
+            <form id="documentForm">
+                <div class="form-group">
+                    <label for="title">Título del Documento:</label>
+                    <input type="text" id="title" name="title" required>
+                </div>
+                <div class="form-group">
+                    <label for="description">Descripción:</label>
+                    <textarea id="description" name="description"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="category">Categoría:</label>
+                    <select id="category" name="category" required>
+                        <option value="constancias">Constancias</option>
+                        <option value="notas">Modelo de Notas</option>
+                        <option value="guias">Guías de Ayuda</option>
+                        <option value="otros">Otros</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="file">Archivo PDF:</label>
+                    <input type="file" id="file" name="file" accept=".pdf" required>
+                </div>
+                <button type="submit">Subir Documento</button>
+            </form>
+        </div>
+
+        <!-- Tab: Listar Documentos -->
+        <div id="list-tab" class="tab-content hidden">
+            <h2>Documentos Cargados</h2>
+            <div class="form-group">
+                <label for="filterCategory">Filtrar por categoría:</label>
+                <select id="filterCategory" onchange="filterDocuments()">
+                    <option value="">Todos</option>
+                    <option value="constancias">Constancias</option>
+                    <option value="notas">Modelo de Notas</option>
+                    <option value="guias">Guías de Ayuda</option>
+                    <option value="otros">Otros</option>
+                </select>
+            </div>
+            <div id="documentsList" class="documents-list"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:3000/api';
+        const credentials = btoa(prompt('Usuario:') + ':' + prompt('Contraseña:'));
+
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById(tab + '-tab').classList.remove('hidden');
+            document.querySelectorAll('.tab-buttons button').forEach(el => el.classList.remove('active'));
+            event.target.classList.add('active');
+            if (tab === 'list') loadDocuments();
+        }
+
+        document.getElementById('documentForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData();
+            formData.append('title', document.getElementById('title').value);
+            formData.append('description', document.getElementById('description').value);
+            formData.append('category', document.getElementById('category').value);
+            formData.append('file', document.getElementById('file').files[0]);
+
+            try {
+                const response = await fetch(`${API_BASE}/documents`, {
+                    method: 'POST',
+                    headers: { 'Authorization': 'Basic ' + credentials },
+                    body: formData
+                });
+                if (response.ok) {
+                    showMessage('Documento cargado exitosamente', 'success');
+                    document.getElementById('documentForm').reset();
+                } else {
+                    showMessage('Error al cargar el documento', 'error');
+                }
+            } catch (err) {
+                showMessage('Error: ' + err.message, 'error');
+            }
+        });
+
+        async function loadDocuments() {
+            try {
+                const response = await fetch(`${API_BASE}/documents`);
+                const documents = await response.json();
+                displayDocuments(documents);
+            } catch (err) {
+                console.error('Error al cargar documentos:', err);
+            }
+        }
+
+        function displayDocuments(documents) {
+            const list = document.getElementById('documentsList');
+            if (documents.length === 0) {
+                list.innerHTML = '<p>No hay documentos disponibles</p>';
+                return;
+            }
+            list.innerHTML = documents.map(doc => `
+                <div class="document-card">
+                    <h3>${doc.title}</h3>
+                    <p>${doc.description || 'Sin descripción'}</p>
+                    <span class="category-badge">${doc.category}</span>
+                    <p><small>Subido: ${new Date(doc.uploadedAt).toLocaleDateString()}</small></p>
+                    <div class="document-actions">
+                        <a href="${doc.filePath}" target="_blank" style="margin-right: 10px;">
+                            <button>Descargar PDF</button>
+                        </a>
+                        <button class="delete" onclick="deleteDocument('${doc.id}')">Eliminar</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function filterDocuments() {
+            const category = document.getElementById('filterCategory').value;
+            const cards = document.querySelectorAll('.document-card');
+            cards.forEach(card => {
+                if (!category || card.querySelector('.category-badge').textContent === category) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+
+        async function deleteDocument(id) {
+            if (!confirm('¿Deseas eliminar este documento?')) return;
+            try {
+                const response = await fetch(`${API_BASE}/documents/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': 'Basic ' + credentials }
+                });
+                if (response.ok) {
+                    loadDocuments();
+                    showMessage('Documento eliminado', 'success');
+                } else {
+                    showMessage('Error al eliminar', 'error');
+                }
+            } catch (err) {
+                showMessage('Error: ' + err.message, 'error');
+            }
+        }
+
+        function showMessage(msg, type) {
+            const msgEl = document.getElementById('message');
+            msgEl.textContent = msg;
+            msgEl.className = type;
+            setTimeout(() => { msgEl.textContent = ''; msgEl.className = ''; }, 3000);
+        }
+
+        function logout() {
+            if (confirm('¿Deseas cerrar sesión?')) window.location.href = 'index.html';
+        }
+    </script>
+</body>
+</html>
