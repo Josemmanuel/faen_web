@@ -516,6 +516,10 @@ document.addEventListener('DOMContentLoaded', () => {
             if (sectionId === 'galeria') {
                 loadGaleria();
             }
+            
+            if (sectionId === 'documentos') {
+                loadAdminDocumentos();
+            }
         });
     });
 
@@ -717,7 +721,232 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Cargar noticias al iniciar
     loadAdminNews();
+
+    // ===== DOCUMENTOS =====
+    const modalDoc = document.getElementById('modal-documento');
+    const btnNuevoDoc = document.getElementById('btn-nuevo-documento');
+    const modalDocClose = document.getElementById('modal-doc-close');
+    const docFormCancel = document.getElementById('doc-form-cancel');
+    const docForm = document.getElementById('documento-form');
+    const docFileInput = document.getElementById('doc-file');
+    const docFileName = document.getElementById('doc-file-name');
+
+    if (btnNuevoDoc) {
+        // Abrir modal de documento
+        btnNuevoDoc.addEventListener('click', (e) => {
+            e.preventDefault();
+            docForm.reset();
+            docFileName.textContent = 'Ningún archivo seleccionado';
+            document.getElementById('modal-doc-titulo').textContent = 'Nuevo Documento';
+            window.editingDocId = null;
+            modalDoc.classList.add('active');
+        });
+    }
+
+    if (modalDocClose) {
+        // Cerrar modal de documento
+        modalDocClose.addEventListener('click', (e) => {
+            e.preventDefault();
+            modalDoc.classList.remove('active');
+            docForm.reset();
+            docFileName.textContent = 'Ningún archivo seleccionado';
+            window.editingDocId = null;
+        });
+    }
+
+    if (docFormCancel) {
+        docFormCancel.addEventListener('click', (e) => {
+            e.preventDefault();
+            modalDoc.classList.remove('active');
+            docForm.reset();
+            docFileName.textContent = 'Ningún archivo seleccionado';
+            window.editingDocId = null;
+        });
+    }
+
+    // Cerrar modal al clickear fuera
+    if (modalDoc) {
+        modalDoc.addEventListener('click', (e) => {
+            if (e.target === modalDoc) {
+                modalDoc.classList.remove('active');
+                docForm.reset();
+                docFileName.textContent = 'Ningún archivo seleccionado';
+                window.editingDocId = null;
+            }
+        });
+    }
+
+    // Mostrar nombre del archivo de documento
+    if (docFileInput) {
+        docFileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                docFileName.textContent = file.name;
+            } else {
+                docFileName.textContent = 'Ningún archivo seleccionado';
+            }
+        });
+    }
+
+    // Enviar formulario de documento
+    if (docForm) {
+        docForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const title = document.getElementById('doc-title').value;
+            const category = document.getElementById('doc-category').value;
+            const description = document.getElementById('doc-description').value;
+            const fileInput = document.getElementById('doc-file');
+
+            if (!fileInput.files || !fileInput.files[0]) {
+                alert('Por favor selecciona un archivo PDF');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('title', title);
+            formData.append('category', category);
+            formData.append('description', description);
+            formData.append('file', fileInput.files[0]);
+
+            const method = window.editingDocId ? 'PUT' : 'POST';
+            const url = window.editingDocId ? '/api/documents/' + window.editingDocId : '/api/documents';
+
+            const user = sessionStorage.getItem('admin_user') || 'admin';
+            const pass = sessionStorage.getItem('admin_pass') || '1234';
+            const credentials = btoa(user + ':' + pass);
+            
+            try {
+                const res = await fetch(url, {
+                    method: method,
+                    body: formData,
+                    headers: {
+                        'Authorization': 'Basic ' + credentials
+                    }
+                });
+                
+                if (res.ok) {
+                    alert(window.editingDocId ? 'Documento actualizado correctamente' : 'Documento creado correctamente');
+                    modalDoc.classList.remove('active');
+                    docForm.reset();
+                    docFileName.textContent = 'Ningún archivo seleccionado';
+                    window.editingDocId = null;
+                    await loadAdminDocumentos();
+                } else {
+                    const text = await res.text();
+                    alert('Error: ' + text);
+                }
+            } catch (error) {
+                alert('Error al guardar el documento: ' + error.message);
+            }
+        });
+    }
 });
+
+async function loadAdminDocumentos() {
+    const adminDocsList = document.getElementById('admin-docs-list');
+    if (!adminDocsList) return;
+    
+    try {
+        const res = await fetch('/api/documents');
+        const data = await res.json();
+        
+        adminDocsList.innerHTML = '';
+        
+        if (!data || data.length === 0) {
+            adminDocsList.innerHTML = '<tr><td colspan="5" class="text-center">No hay documentos subidos aún</td></tr>';
+            return;
+        }
+
+        data.slice().reverse().forEach(doc => {
+            const row = document.createElement('tr');
+            
+            const title = escapeHtml(doc.title);
+            const category = escapeHtml(doc.category || 'Sin categoría');
+            const description = escapeHtml(doc.description || '');
+            const date = escapeHtml(doc.uploadedAt || '');
+
+            row.innerHTML = '<td><div class="tabla-titulo">' + title + '</div></td>' +
+                '<td>' + category + '</td>' +
+                '<td><div class="tabla-descripcion">' + description + '</div></td>' +
+                '<td>' + date + '</td>' +
+                '<td><div class="tabla-acciones">' +
+                '<button class="btn btn-edit edit-doc-btn" data-id="' + doc.id + '">✏️ Editar</button>' +
+                '<button class="btn btn-danger delete-doc-btn" data-id="' + doc.id + '">🗑️ Eliminar</button>' +
+                '</div></td>';
+
+            adminDocsList.appendChild(row);
+        });
+
+        document.querySelectorAll('.edit-doc-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.preventDefault();
+                const id = e.target.dataset.id;
+                await editDocumento(id);
+            });
+        });
+
+        document.querySelectorAll('.delete-doc-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.preventDefault();
+                const id = e.target.dataset.id;
+                await deleteDocumento(id);
+            });
+        });
+
+    } catch (err) {
+        console.error('Error cargando documentos:', err);
+        adminDocsList.innerHTML = '<tr><td colspan="5" class="text-center">Error cargando documentos</td></tr>';
+    }
+}
+
+async function editDocumento(id) {
+    try {
+        const res = await fetch('/api/documents');
+        const all = await res.json();
+        const doc = all.find(x => x.id === id);
+        
+        if (!doc) {
+            alert('Documento no encontrado');
+            return;
+        }
+
+        document.getElementById('doc-title').value = doc.title;
+        document.getElementById('doc-category').value = doc.category || '';
+        document.getElementById('doc-description').value = doc.description || '';
+        document.getElementById('modal-doc-titulo').textContent = 'Editar Documento';
+
+        window.editingDocId = id;
+        const modal = document.getElementById('modal-documento');
+        modal.classList.add('active');
+    } catch (err) {
+        alert('Error cargando documento: ' + err.message);
+    }
+}
+
+async function deleteDocumento(id) {
+    if (!confirm('¿Estás seguro de que deseas eliminar este documento?')) {
+        return;
+    }
+
+    try {
+        const res = await fetch('/api/documents/' + id, {
+            method: 'DELETE',
+            headers: getAuthHeaders()
+        });
+
+        if (res.ok) {
+            alert('Documento eliminado correctamente');
+            await loadAdminDocumentos();
+        } else {
+            const err = await res.json().catch(() => null);
+            alert('Error al eliminar: ' + (err && err.error ? err.error : res.statusText));
+        }
+    } catch (error) {
+        alert('Error al eliminar el documento: ' + error.message);
+    }
+}
+
 
 function getAuthHeaders() {
     const user = sessionStorage.getItem('admin_user') || 'admin';

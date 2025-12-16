@@ -26,7 +26,7 @@
                     <span class="nav-icon">🖼️</span>
                     <span class="nav-text">Galería</span>
                 </a>
-                <a href="admin-documents.html" class="nav-item">
+                <a href="#" class="nav-item" data-section="documentos">
                     <span class="nav-icon">📄</span>
                     <span class="nav-text">Documentos</span>
                 </a>
@@ -153,6 +153,82 @@
                 <!-- Galería de fotos -->
                 <div class="galeria-grid" id="galeria-grid">
                     <p class="text-center" style="grid-column: 1 / -1;">Cargando fotos...</p>
+                </div>
+            </section>
+
+            <!-- Sección de Documentos -->
+            <section class="dashboard-section" id="section-documentos">
+                <div class="section-header">
+                    <h2>Gestionar Documentos</h2>
+                    <button id="btn-nuevo-documento" class="btn btn-primary btn-large">
+                        ➕ Nuevo Documento
+                    </button>
+                </div>
+
+                <!-- Modal para crear/editar documento -->
+                <div id="modal-documento" class="modal">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h3 id="modal-doc-titulo">Nuevo Documento</h3>
+                            <button class="modal-close" id="modal-doc-close">&times;</button>
+                        </div>
+                        <form id="documento-form" enctype="multipart/form-data" class="modal-form">
+                            <div class="form-group">
+                                <label for="doc-title">Título *</label>
+                                <input type="text" id="doc-title" placeholder="Ej: Constancia de Inscripción 2025" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="doc-category">Categoría *</label>
+                                <select id="doc-category" required>
+                                    <option value="">Seleccionar categoría</option>
+                                    <option value="constancias">📜 Constancias</option>
+                                    <option value="notas">📋 Modelo de Notas</option>
+                                    <option value="guias">📖 Guías de Ayuda</option>
+                                    <option value="otros">📁 Otros</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="doc-description">Descripción</label>
+                                <textarea id="doc-description" placeholder="Descripción del documento" rows="4"></textarea>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="doc-file">Archivo PDF *</label>
+                                <div class="file-input-wrapper">
+                                    <input type="file" id="doc-file" accept=".pdf" class="file-input" required>
+                                    <label for="doc-file" class="file-label">Seleccionar PDF</label>
+                                    <span id="doc-file-name" class="file-name">Ningún archivo seleccionado</span>
+                                </div>
+                            </div>
+
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-success">Guardar Documento</button>
+                                <button type="button" id="doc-form-cancel" class="btn btn-secondary">Cancelar</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Tabla de documentos -->
+                <div class="table-wrapper">
+                    <table class="documentos-table">
+                        <thead>
+                            <tr>
+                                <th>Título</th>
+                                <th>Categoría</th>
+                                <th>Descripción</th>
+                                <th>Fecha</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-docs-list">
+                            <tr>
+                                <td colspan="5" class="text-center">Cargando documentos...</td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </section>
         </div>
