@@ -68,11 +68,23 @@ export class NewsService {
     const idx = news.findIndex(n => n.id === id);
     if (idx === -1) return false;
     const item = news[idx];
-    // intentar borrar imagen en public/uploads si existe
+    
+    // Eliminar imagen local si existe
     if (item.image && item.image.startsWith('/uploads/')) {
-      const fileOnDisk = path.join(process.cwd(), 'public', item.image);
-      try { if (fs.existsSync(fileOnDisk)) fs.unlinkSync(fileOnDisk); } catch (err) { /* ignore */ }
+      // Calcular ruta correcta: ../../../public/uploads/...
+      const uploadsDir = path.resolve(__dirname, '../../../public');
+      const fileOnDisk = path.join(uploadsDir, item.image);
+      
+      try {
+        if (fs.existsSync(fileOnDisk)) {
+          fs.unlinkSync(fileOnDisk);
+          console.log(`Imagen eliminada: ${fileOnDisk}`);
+        }
+      } catch (err) {
+        console.error(`Error al eliminar imagen ${fileOnDisk}:`, err.message);
+      }
     }
+    
     news.splice(idx, 1);
     fs.writeFileSync(NEWS_FILE, JSON.stringify(news, null, 2));
     return true;
