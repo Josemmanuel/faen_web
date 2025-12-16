@@ -5,407 +5,177 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin - Documentos - FAEN</title>
     <link rel="stylesheet" href="css/styles.css">
-    <style>
-        .admin-container {
-            display: flex;
-            max-width: 1200px;
-            margin: 20px auto;
-            padding: 20px;
-            background-color: white;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-            width: 100%;
-        }
-
-        .admin-main {
-            flex: 1;
-            min-width: 0;
-        }
-
-        .admin-header {
-            margin-bottom: 30px;
-        }
-
-        .admin-header h2 {
-            margin: 0 0 10px 0;
-            color: #333;
-            font-size: 1.8rem;
-        }
-
-        .tab-nav {
-            display: flex;
-            gap: 0;
-            margin-bottom: 20px;
-            border-bottom: 2px solid #ddd;
-        }
-
-        .tab-nav button {
-            padding: 12px 20px;
-            border: none;
-            background: transparent;
-            cursor: pointer;
-            font-size: 1rem;
-            color: #666;
-            border-bottom: 3px solid transparent;
-            transition: all 0.3s ease;
-        }
-
-        .tab-nav button:hover {
-            color: #007bff;
-        }
-
-        .tab-nav button.active {
-            color: #007bff;
-            border-bottom-color: #007bff;
-            background: #f9f9f9;
-        }
-
-        .tab-content {
-            display: none;
-            animation: fadeIn 0.3s ease;
-        }
-
-        .tab-content.active {
-            display: block;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: bold;
-            color: #333;
-            font-size: 0.95rem;
-        }
-
-        input[type="text"],
-        input[type="file"],
-        select,
-        textarea {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 0.95rem;
-            font-family: Arial, sans-serif;
-        }
-
-        input[type="text"]:focus,
-        input[type="file"]:focus,
-        select:focus,
-        textarea:focus {
-            outline: none;
-            border-color: #007bff;
-            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
-        }
-
-        textarea {
-            resize: vertical;
-            min-height: 100px;
-        }
-
-        button {
-            background: #007bff;
-            color: white;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 0.95rem;
-            font-weight: bold;
-            transition: background 0.2s;
-        }
-
-        button:hover {
-            background: #0056b3;
-        }
-
-        button.delete {
-            background: #dc3545;
-        }
-
-        button.delete:hover {
-            background: #c82333;
-        }
-
-        button.secondary {
-            background: #6c757d;
-            margin-left: auto;
-        }
-
-        button.secondary:hover {
-            background: #5a6268;
-        }
-
-        .button-group {
-            display: flex;
-            gap: 10px;
-            margin-top: 20px;
-        }
-
-        .message {
-            padding: 12px;
-            margin-bottom: 20px;
-            border-radius: 4px;
-            font-size: 0.95rem;
-            display: none;
-        }
-
-        .message.success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-            display: block;
-        }
-
-        .message.error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-            display: block;
-        }
-
-        .document-card {
-            display: flex;
-            gap: 20px;
-            background: #fff;
-            padding: 18px;
-            border-radius: 6px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
-            margin-bottom: 20px;
-            align-items: flex-start;
-            width: 100%;
-            overflow: hidden;
-            border: 1px solid #e0e0e0;
-        }
-
-        .document-preview {
-            width: 150px;
-            height: 120px;
-            background: #f5f5f5;
-            border-radius: 4px;
-            flex-shrink: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 40px;
-            border: 1px solid #e0e0e0;
-        }
-
-        .document-content {
-            flex: 1;
-            min-width: 0;
-        }
-
-        .document-content h3 {
-            margin: 0 0 8px 0;
-            font-size: 1.1rem;
-            color: #333;
-        }
-
-        .document-content p {
-            margin: 0 0 10px 0;
-            color: #666;
-            font-size: 0.95rem;
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-        }
-
-        .document-meta {
-            color: #999;
-            font-size: 0.85rem;
-            margin-bottom: 12px;
-        }
-
-        .category-badge {
-            display: inline-block;
-            background: #e9ecef;
-            padding: 4px 8px;
-            border-radius: 3px;
-            font-size: 0.8rem;
-            color: #495057;
-            margin-bottom: 10px;
-        }
-
-        .document-actions {
-            display: flex;
-            gap: 10px;
-            margin-top: 10px;
-            flex-wrap: wrap;
-        }
-
-        .document-actions button {
-            padding: 6px 12px;
-            font-size: 0.85rem;
-            margin: 0;
-        }
-
-        .empty {
-            text-align: center;
-            color: #999;
-            padding: 40px;
-            font-size: 1rem;
-        }
-
-        .filter-group {
-            margin-bottom: 20px;
-        }
-
-        @media (max-width: 768px) {
-            .admin-container {
-                flex-direction: column;
-                padding: 10px;
-            }
-
-            .tab-nav button {
-                padding: 10px 12px;
-                font-size: 0.9rem;
-            }
-
-            .document-card {
-                flex-direction: column;
-                gap: 15px;
-            }
-
-            .document-preview {
-                width: 100%;
-                height: 150px;
-            }
-        }
-    </style>
 </head>
 <body>
     <header>
-        <h1>Administración</h1>
-        <nav>
-            <ul>
-                <li><a href="index.html">Inicio</a></li>
-                <li><a href="admin.html">Admin - Noticias</a></li>
-                <li><a href="admin-documents.html">Admin - Documentos</a></li>
-            </ul>
-        </nav>
+        <div class="header-content">
+            <h1>📄 Administración de Documentos</h1>
+            <p class="subtitle">Gestiona documentos PDF</p>
+        </div>
     </header>
 
-    <div class="admin-container">
-        <div class="admin-main">
-            <div class="admin-header">
-                <h2>📄 Administración de Documentos</h2>
-                <p style="margin: 0; color: #666;">Carga y gestiona documentos PDF para la guía de ayuda</p>
-            </div>
+    <main class="dashboard-container">
+        <!-- Sidebar de navegación -->
+        <aside class="dashboard-sidebar">
+            <nav class="dashboard-nav">
+                <a href="admin.html" class="nav-item">
+                    <span class="nav-icon">📋</span>
+                    <span class="nav-text">Noticias</span>
+                </a>
+                <a href="admin.html" class="nav-item">
+                    <span class="nav-icon">🖼️</span>
+                    <span class="nav-text">Galería</span>
+                </a>
+                <a href="admin-documents.html" class="nav-item active">
+                    <span class="nav-icon">📄</span>
+                    <span class="nav-text">Documentos</span>
+                </a>
+                <a href="index.html" class="nav-item">
+                    <span class="nav-icon">🏠</span>
+                    <span class="nav-text">Ver Sitio</span>
+                </a>
+            </nav>
+        </aside>
 
-            <div class="tab-nav">
-                <button class="active" onclick="switchTab(event, 'form-tab')">+ Agregar Documento</button>
-                <button onclick="switchTab(event, 'list-tab')">📋 Ver Documentos</button>
-                <button class="secondary" onclick="logout()">🚪 Salir</button>
-            </div>
-
-            <!-- Tab: Agregar Documento -->
-            <div id="form-tab" class="tab-content active">
-                <h3>Agregar Nuevo Documento</h3>
-                <div id="message" class="message"></div>
-                <form id="documentForm">
-                    <div class="form-group">
-                        <label for="title">Título del Documento:</label>
-                        <input type="text" id="title" name="title" placeholder="Ej: Constancia de Inscripción 2025" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="description">Descripción:</label>
-                        <textarea id="description" name="description" placeholder="Describe brevemente el contenido del documento..."></textarea>
-                    </div>
-                    <div class="form-group">
-                        <label for="category">Categoría:</label>
-                        <select id="category" name="category" required>
-                            <option value="constancias">📜 Constancias</option>
-                            <option value="notas">📋 Modelo de Notas</option>
-                            <option value="guias">📖 Guías de Ayuda</option>
-                            <option value="otros">📁 Otros</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="file">Archivo PDF:</label>
-                        <input type="file" id="file" name="file" accept=".pdf" required>
-                        <small style="color: #666; font-size: 0.85rem; display: block; margin-top: 5px;">Solo archivos PDF. Máximo 50MB</small>
-                    </div>
-                    <div class="button-group">
-                        <button type="submit">✓ Subir Documento</button>
-                    </div>
-                </form>
-            </div>
-
-            <!-- Tab: Listar Documentos -->
-            <div id="list-tab" class="tab-content">
-                <h3>Documentos Cargados</h3>
-                <div class="filter-group">
-                    <label for="filterCategory">Filtrar por categoría:</label>
-                    <select id="filterCategory" onchange="filterDocuments()" style="max-width: 300px;">
-                        <option value="">Todos</option>
-                        <option value="constancias">📜 Constancias</option>
-                        <option value="notas">📋 Modelo de Notas</option>
-                        <option value="guias">📖 Guías de Ayuda</option>
-                        <option value="otros">📁 Otros</option>
-                    </select>
+        <!-- Contenido Principal -->
+        <div class="dashboard-content">
+            <!-- Sección de Documentos -->
+            <section class="dashboard-section active" id="section-documentos">
+                <div class="section-header">
+                    <h2>Gestionar Documentos</h2>
+                    <button id="btn-nuevo-documento" class="btn btn-primary btn-large">
+                        ➕ Nuevo Documento
+                    </button>
                 </div>
-                <div id="documentsList"></div>
-            </div>
+
+                <!-- Modal para crear/editar documento -->
+                <div id="modal-documento" class="modal">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h3 id="modal-titulo">Nuevo Documento</h3>
+                            <button class="modal-close" id="modal-close">&times;</button>
+                        </div>
+                        <form id="documento-form" enctype="multipart/form-data" class="modal-form">
+                            <div class="form-group">
+                                <label for="doc-title">Título *</label>
+                                <input type="text" id="doc-title" placeholder="Ej: Constancia de Inscripción 2025" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="doc-category">Categoría *</label>
+                                <select id="doc-category" required>
+                                    <option value="">Seleccionar categoría</option>
+                                    <option value="constancias">📜 Constancias</option>
+                                    <option value="notas">📋 Modelo de Notas</option>
+                                    <option value="guias">📖 Guías de Ayuda</option>
+                                    <option value="otros">📁 Otros</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="doc-description">Descripción</label>
+                                <textarea id="doc-description" placeholder="Descripción del documento" rows="4"></textarea>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="doc-file">Archivo PDF *</label>
+                                <div class="file-input-wrapper">
+                                    <input type="file" id="doc-file" accept=".pdf" class="file-input" required>
+                                    <label for="doc-file" class="file-label">Seleccionar PDF</label>
+                                    <span id="file-name" class="file-name">Ningún archivo seleccionado</span>
+                                </div>
+                            </div>
+
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-success">Guardar Documento</button>
+                                <button type="button" id="form-cancel" class="btn btn-secondary">Cancelar</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Tabla de documentos -->
+                <div class="table-wrapper">
+                    <table class="documentos-table">
+                        <thead>
+                            <tr>
+                                <th>Título</th>
+                                <th>Categoría</th>
+                                <th>Descripción</th>
+                                <th>Fecha</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-docs-list">
+                            <tr>
+                                <td colspan="5" class="text-center">Cargando documentos...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
         </div>
-    </div>
+    </main>
 
     <script>
         const API_BASE = 'http://localhost:3000/api';
         let credentials = null;
         let allDocuments = [];
 
-        // Verificar autenticación al cargar
+        // Autenticación
         window.addEventListener('load', () => {
             const user = prompt('Usuario:');
             const pass = prompt('Contraseña:');
             if (user && pass) {
                 credentials = btoa(user + ':' + pass);
+                loadDocuments();
             } else {
-                alert('Autenticación cancelada');
-                window.location.href = 'index.html';
+                window.location.href = 'admin.html';
             }
         });
 
-        function switchTab(event, tabName) {
-            event.preventDefault();
+        // Modal
+        const modal = document.getElementById('modal-documento');
+        const btnNuevo = document.getElementById('btn-nuevo-documento');
+        const btnClose = document.getElementById('modal-close');
+        const btnCancel = document.getElementById('form-cancel');
+        const form = document.getElementById('documento-form');
+        const fileInput = document.getElementById('doc-file');
+        const fileName = document.getElementById('file-name');
 
-            // Ocultar todos los tabs
-            document.querySelectorAll('.tab-content').forEach(el => {
-                el.classList.remove('active');
-            });
+        btnNuevo.addEventListener('click', () => {
+            document.getElementById('modal-titulo').textContent = 'Nuevo Documento';
+            form.reset();
+            fileName.textContent = 'Ningún archivo seleccionado';
+            modal.style.display = 'block';
+        });
 
-            // Desactivar todos los botones
-            document.querySelectorAll('.tab-nav button').forEach(el => {
-                el.classList.remove('active');
-            });
+        btnClose.addEventListener('click', () => {
+            modal.style.display = 'none';
+        });
 
-            // Mostrar el tab seleccionado
-            document.getElementById(tabName).classList.add('active');
-            event.target.classList.add('active');
+        btnCancel.addEventListener('click', () => {
+            modal.style.display = 'none';
+        });
 
-            // Si es el tab de lista, cargar documentos
-            if (tabName === 'list-tab') {
-                loadDocuments();
+        window.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.style.display = 'none';
             }
-        }
+        });
 
-        document.getElementById('documentForm').addEventListener('submit', async (e) => {
+        fileInput.addEventListener('change', (e) => {
+            fileName.textContent = e.target.files[0]?.name || 'Ningún archivo seleccionado';
+        });
+
+        form.addEventListener('submit', async (e) => {
             e.preventDefault();
+            
             const formData = new FormData();
-            formData.append('title', document.getElementById('title').value);
-            formData.append('description', document.getElementById('description').value);
-            formData.append('category', document.getElementById('category').value);
-            formData.append('file', document.getElementById('file').files[0]);
+            formData.append('title', document.getElementById('doc-title').value);
+            formData.append('category', document.getElementById('doc-category').value);
+            formData.append('description', document.getElementById('doc-description').value);
+            formData.append('file', fileInput.files[0]);
 
             try {
                 const response = await fetch(`${API_BASE}/documents`, {
@@ -415,17 +185,13 @@
                 });
 
                 if (response.ok) {
-                    showMessage('✓ Documento cargado exitosamente', 'success');
-                    document.getElementById('documentForm').reset();
-                    setTimeout(() => {
-                        document.getElementById('documentForm').reset();
-                    }, 1000);
+                    modal.style.display = 'none';
+                    loadDocuments();
                 } else {
-                    const error = await response.json().catch(() => ({ message: 'Error desconocido' }));
-                    showMessage('✗ Error: ' + (error.message || 'Error al cargar el documento'), 'error');
+                    alert('Error al guardar el documento');
                 }
             } catch (err) {
-                showMessage('✗ Error de conexión: ' + err.message, 'error');
+                alert('Error: ' + err.message);
             }
         });
 
@@ -433,94 +199,56 @@
             try {
                 const response = await fetch(`${API_BASE}/documents`);
                 allDocuments = await response.json();
-                displayDocuments(allDocuments);
+                displayDocuments();
             } catch (err) {
-                console.error('Error al cargar documentos:', err);
-                document.getElementById('documentsList').innerHTML = '<div class="empty">Error al cargar los documentos</div>';
+                console.error('Error:', err);
             }
         }
 
-        function displayDocuments(documents) {
-            const list = document.getElementById('documentsList');
-            if (documents.length === 0) {
-                list.innerHTML = '<div class="empty">No hay documentos cargados aún</div>';
+        function displayDocuments() {
+            const tbody = document.getElementById('admin-docs-list');
+            if (allDocuments.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center">No hay documentos</td></tr>';
                 return;
             }
-            list.innerHTML = documents.map(doc => `
-                <div class="document-card">
-                    <div class="document-preview">📄</div>
-                    <div class="document-content">
-                        <h3>${doc.title}</h3>
-                        <p>${doc.description || 'Sin descripción'}</p>
-                        <span class="category-badge">${getCategoryLabel(doc.category)}</span>
-                        <div class="document-meta">
-                            📅 Subido: ${new Date(doc.uploadedAt).toLocaleDateString()} | 
-                            📄 ${doc.fileName}
-                        </div>
-                        <div class="document-actions">
-                            <a href="${doc.filePath}" target="_blank" style="text-decoration: none;">
-                                <button type="button">👁️ Ver PDF</button>
-                            </a>
-                            <a href="${doc.filePath}" download style="text-decoration: none;">
-                                <button type="button">⬇️ Descargar</button>
-                            </a>
-                            <button type="button" class="delete" onclick="deleteDocument('${doc.id}')">🗑️ Eliminar</button>
-                        </div>
-                    </div>
-                </div>
+
+            tbody.innerHTML = allDocuments.map(doc => `
+                <tr>
+                    <td><strong>${doc.title}</strong></td>
+                    <td><span class="badge">${getCategoryLabel(doc.category)}</span></td>
+                    <td>${doc.description ? doc.description.substring(0, 50) + '...' : '-'}</td>
+                    <td>${new Date(doc.uploadedAt).toLocaleDateString()}</td>
+                    <td>
+                        <a href="${doc.filePath}" target="_blank" class="btn btn-small btn-info">Ver</a>
+                        <button class="btn btn-small btn-danger" onclick="deleteDoc('${doc.id}')">Eliminar</button>
+                    </td>
+                </tr>
             `).join('');
         }
 
-        function getCategoryLabel(category) {
+        function getCategoryLabel(cat) {
             const labels = {
                 constancias: '📜 Constancias',
                 notas: '📋 Modelo de Notas',
                 guias: '📖 Guías de Ayuda',
                 otros: '📁 Otros'
             };
-            return labels[category] || category;
+            return labels[cat] || cat;
         }
 
-        function filterDocuments() {
-            const category = document.getElementById('filterCategory').value;
-            const filtered = category
-                ? allDocuments.filter(doc => doc.category === category)
-                : allDocuments;
-            displayDocuments(filtered);
-        }
-
-        async function deleteDocument(id) {
-            if (!confirm('¿Deseas eliminar este documento? Esta acción no se puede deshacer.')) return;
-            try {
-                const response = await fetch(`${API_BASE}/documents/${id}`, {
-                    method: 'DELETE',
-                    headers: { 'Authorization': 'Basic ' + credentials }
-                });
-                if (response.ok) {
-                    loadDocuments();
-                    showMessage('✓ Documento eliminado correctamente', 'success');
-                } else {
-                    showMessage('✗ Error al eliminar el documento', 'error');
+        async function deleteDoc(id) {
+            if (confirm('¿Eliminar este documento?')) {
+                try {
+                    const response = await fetch(`${API_BASE}/documents/${id}`, {
+                        method: 'DELETE',
+                        headers: { 'Authorization': 'Basic ' + credentials }
+                    });
+                    if (response.ok) {
+                        loadDocuments();
+                    }
+                } catch (err) {
+                    alert('Error: ' + err.message);
                 }
-            } catch (err) {
-                showMessage('✗ Error: ' + err.message, 'error');
-            }
-        }
-
-        function showMessage(msg, type) {
-            const msgEl = document.getElementById('message');
-            msgEl.textContent = msg;
-            msgEl.className = 'message ' + type;
-            setTimeout(() => {
-                msgEl.textContent = '';
-                msgEl.className = 'message';
-            }, 4000);
-        }
-
-        function logout() {
-            if (confirm('¿Deseas cerrar sesión?')) {
-                credentials = null;
-                window.location.href = 'index.html';
             }
         }
     </script>
