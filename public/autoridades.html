@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Autoridades - FAEN</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        .autoridades-container {
+            max-width: 1000px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: white;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+
+        .autoridades-container h2 {
+            border-bottom: 3px solid #007bff;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .autoridad-item {
+            background: #f9f9f9;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-left: 4px solid #007bff;
+            border-radius: 4px;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .autoridad-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 4px 15px rgba(0,123,255,0.2);
+        }
+
+        .autoridad-item h3 {
+            margin: 0 0 10px 0;
+            color: #333;
+            font-size: 1.2rem;
+        }
+
+        .autoridad-item p {
+            margin: 8px 0;
+            color: #666;
+            font-size: 0.95rem;
+        }
+
+        .autoridad-label {
+            font-weight: bold;
+            color: #007bff;
+            display: inline-block;
+            width: 100px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Autoridades</h1>
+        <button class="menu-toggle" id="menu-toggle">☰</button>
+        <nav id="navbar-menu">
+            <ul>
+                <li><a href="index.html"><span class="nav-icon">🏠</span> Inicio</a></li>
+                <li><a href="help-guide.html"><span class="nav-icon">❓</span> Guía</a></li>
+                <li><a href="#"><span class="nav-icon">🎓</span> Carreras</a></li>
+                <li><a href="autoridades.html"><span class="nav-icon">👔</span> Autoridades</a></li>
+                <li><a href="contacto.html"><span class="nav-icon">📞</span> Contacto</a></li>
+                <li class="dropdown">
+                    <a href="#" class="dropdown-toggle"><span class="nav-icon">👨‍🎓</span> Estudiantes <span class="dropdown-arrow">▼</span></a>
+                    <ul class="dropdown-menu">
+                        <li><a href="#"><span class="nav-icon">📋</span> Preinscripción</a></li>
+                        <li><a href="https://guarani.unf.edu.ar/autogestion/" target="_blank"><span class="nav-icon">🔐</span> Autogestión</a></li>
+                    </ul>
+                </li>
+            </ul>
+        </nav>
+    </header>
+
+    <main class="container">
+        <section class="main-content">
+            <div class="autoridades-container">
+                <h2>Autoridades de la Facultad</h2>
+                <div id="autoridades-list" class="autoridades-list">
+                    <div class="loading">Cargando autoridades...</div>
+                </div>
+            </div>
+        </section>
+        <aside class="sidebar">
+            <h3>Secciones</h3>
+            <ul>
+                <li><a href="index.html">Inicio</a></li>
+                <li><a href="help-guide.html">Guía</a></li>
+                <li><a href="contacto.html">Contacto</a></li>
+            </ul>
+        </aside>
+    </main>
+
+    <footer>
+        <p>&copy; 2025 Facultad de Economía</p>
+    </footer>
+
+    <script src="js/app.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                const res = await fetch('/api/autoridades');
+                const autoridades = await res.json();
+                const listContainer = document.getElementById('autoridades-list');
+                
+                if (autoridades.length === 0) {
+                    listContainer.innerHTML = '<p style="text-align: center; color: #666;">No hay autoridades registradas.</p>';
+                } else {
+                    listContainer.innerHTML = autoridades.map(auth => `
+                        <div class="autoridad-item">
+                            <h3>${auth.nombre}</h3>
+                            <p><span class="autoridad-label">Cargo:</span> ${auth.cargo}</p>
+                            ${auth.email ? `<p><span class="autoridad-label">Email:</span> <a href="mailto:${auth.email}">${auth.email}</a></p>` : ''}
+                            ${auth.telefono ? `<p><span class="autoridad-label">Teléfono:</span> <a href="tel:${auth.telefono}">${auth.telefono}</a></p>` : ''}
+                        </div>
+                    `).join('');
+                }
+            } catch (error) {
+                document.getElementById('autoridades-list').innerHTML = `<div class="error">Error al cargar las autoridades: ${error.message}</div>`;
+            }
+
+            // Toggle menu
+            const menuToggle = document.getElementById('menu-toggle');
+            const navbarMenu = document.getElementById('navbar-menu');
+            if (menuToggle) {
+                menuToggle.addEventListener('click', () => {
+                    navbarMenu.classList.toggle('active');
+                });
+            }
+
+            // Dropdown toggle
+            const dropdownToggles = document.querySelectorAll('.dropdown-toggle');
+            dropdownToggles.forEach(toggle => {
+                toggle.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    toggle.parentElement.classList.toggle('active');
+                });
+            });
+        });
+    </script>
+</body>
+</html>

@@ -5,7 +5,7 @@ export interface Foto {
     fecha: string;
 }
 export declare class GaleriaService {
-    private galeriaFilePath;
+    private getFilePath;
     getAllFotos(): Promise<Foto[]>;
     addFoto(foto: Foto): Promise<Foto>;
     deleteFoto(id: string): Promise<void>;

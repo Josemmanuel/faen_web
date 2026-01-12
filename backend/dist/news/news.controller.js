@@ -24,14 +24,21 @@ const news_service_1 = require("./news.service");
 const create_news_dto_1 = require("./dto/create-news.dto");
 const update_news_dto_1 = require("./dto/update-news.dto");
 const basic_auth_guard_1 = require("../auth/basic-auth.guard");
-const uploadsDir = (0, path_1.join)(__dirname, '..', '..', '..', 'public', 'uploads');
-if (!(0, fs_1.existsSync)(uploadsDir)) {
-    (0, fs_1.mkdirSync)(uploadsDir, { recursive: true });
+function getUploadsDir() {
+    const projectRoot = globalThis['projectRoot'] || (0, path_1.resolve)(__dirname, '../../..');
+    const uploadsPath = (0, path_1.resolve)(projectRoot, 'public', 'uploads');
+    console.log('📁 getUploadsDir() resolved to:', uploadsPath);
+    console.log('📁 projectRoot is:', projectRoot);
+    if (!(0, fs_1.existsSync)(uploadsPath)) {
+        console.log('📁 Creating uploads directory:', uploadsPath);
+        (0, fs_1.mkdirSync)(uploadsPath, { recursive: true });
+    }
+    return uploadsPath;
 }
 const multerConfig = {
     storage: (0, multer_1.diskStorage)({
         destination: (req, file, cb) => {
-            cb(null, uploadsDir);
+            cb(null, getUploadsDir());
         },
         filename: (req, file, cb) => {
             const uniqueName = Date.now() + '-' + file.originalname;

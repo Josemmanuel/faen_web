@@ -6,6 +6,7 @@ export interface NewsItem {
     image?: string | null;
 }
 export declare class NewsService {
+    private getFilePath;
     private ensureFile;
     findAll(): NewsItem[];
     findOne(id: string): NewsItem | undefined;

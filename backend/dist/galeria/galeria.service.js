@@ -44,12 +44,13 @@ const common_1 = require("@nestjs/common");
 const fs = __importStar(require("fs/promises"));
 const path = __importStar(require("path"));
 let GaleriaService = class GaleriaService {
-    constructor() {
-        this.galeriaFilePath = path.join(process.cwd(), 'data', 'galeria.json');
+    getFilePath() {
+        const projectRoot = globalThis['projectRoot'] || path.resolve(__dirname, '../..');
+        return path.resolve(projectRoot, 'data/galeria.json');
     }
     async getAllFotos() {
         try {
-            const data = await fs.readFile(this.galeriaFilePath, 'utf-8');
+            const data = await fs.readFile(this.getFilePath(), 'utf-8');
             return JSON.parse(data);
         }
         catch (error) {
@@ -59,14 +60,15 @@ let GaleriaService = class GaleriaService {
     async addFoto(foto) {
         const fotos = await this.getAllFotos();
         fotos.push(foto);
-        await fs.writeFile(this.galeriaFilePath, JSON.stringify(fotos, null, 2), 'utf-8');
+        await fs.writeFile(this.getFilePath(), JSON.stringify(fotos, null, 2), 'utf-8');
         return foto;
     }
     async deleteFoto(id) {
         let fotos = await this.getAllFotos();
         const foto = fotos.find((f) => f.id === id);
         if (foto) {
-            const filePath = path.join(process.cwd(), 'public', foto.ruta);
+            const projectRoot = globalThis['projectRoot'] || path.resolve(__dirname, '../..');
+            const filePath = path.join(projectRoot, 'public', foto.ruta);
             try {
                 await fs.unlink(filePath);
             }
@@ -75,7 +77,7 @@ let GaleriaService = class GaleriaService {
             }
         }
         fotos = fotos.filter((f) => f.id !== id);
-        await fs.writeFile(this.galeriaFilePath, JSON.stringify(fotos, null, 2), 'utf-8');
+        await fs.writeFile(this.getFilePath(), JSON.stringify(fotos, null, 2), 'utf-8');
     }
 };
 exports.GaleriaService = GaleriaService;

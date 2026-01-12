@@ -11,6 +11,7 @@
         <div class="header-content">
             <h1>📰 Panel de Administración</h1>
             <p class="subtitle">Gestiona tu sitio web</p>
+            <button class="menu-toggle-admin" id="menu-toggle-admin">☰</button>
         </div>
     </header>
 
@@ -29,6 +30,22 @@
                 <a href="#" class="nav-item" data-section="documentos">
                     <span class="nav-icon">📄</span>
                     <span class="nav-text">Documentos</span>
+                </a>
+                <a href="#" class="nav-item" data-section="carreras">
+                    <span class="nav-icon">🎓</span>
+                    <span class="nav-text">Carreras</span>
+                </a>
+                <a href="#" class="nav-item" data-section="autoridades">
+                    <span class="nav-icon">👥</span>
+                    <span class="nav-text">Autoridades</span>
+                </a>
+                <a href="#" class="nav-item" data-section="mensajes">
+                    <span class="nav-icon">📧</span>
+                    <span class="nav-text">Mensajes</span>
+                </a>
+                <a href="#" class="nav-item" data-section="configuracion">
+                    <span class="nav-icon">⚙️</span>
+                    <span class="nav-text">Configuración</span>
                 </a>
                 <a href="index.html" class="nav-item">
                     <span class="nav-icon">🏠</span>
@@ -156,6 +173,72 @@
                 </div>
             </section>
 
+            <!-- Sección de Carreras -->
+            <section class="dashboard-section" id="section-carreras">
+                <div class="section-header">
+                    <h2>Gestionar Carreras</h2>
+                    <button id="btn-nueva-carrera" class="btn btn-primary btn-large">
+                        ➕ Nueva Carrera
+                    </button>
+                </div>
+
+                <!-- Modal para crear/editar carrera -->
+                <div id="modal-carrera" class="modal">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h3 id="modal-carrera-titulo">Nueva Carrera</h3>
+                            <button class="modal-close" id="modal-carrera-close">&times;</button>
+                        </div>
+                        <form id="carrera-form" class="modal-form">
+                            <div class="form-group">
+                                <label for="carrera-title">Nombre de la Carrera *</label>
+                                <input type="text" id="carrera-title" placeholder="Ej: Ingeniería en Sistemas" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="carrera-code">Código *</label>
+                                <input type="text" id="carrera-code" placeholder="Ej: IS-001" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="carrera-description">Descripción *</label>
+                                <textarea id="carrera-description" placeholder="Descripción de la carrera" required rows="6"></textarea>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="carrera-duration">Duración (años) *</label>
+                                <input type="number" id="carrera-duration" placeholder="Ej: 4" min="1" required>
+                            </div>
+
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-success">Guardar Carrera</button>
+                                <button type="button" id="carrera-form-cancel" class="btn btn-secondary">Cancelar</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Tabla de carreras -->
+                <div class="table-wrapper">
+                    <table class="carreras-table">
+                        <thead>
+                            <tr>
+                                <th>Nombre</th>
+                                <th>Código</th>
+                                <th>Descripción</th>
+                                <th>Duración</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-carreras-list">
+                            <tr>
+                                <td colspan="5" class="text-center">Cargando carreras...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
             <!-- Sección de Documentos -->
             <section class="dashboard-section" id="section-documentos">
                 <div class="section-header">
@@ -229,6 +312,145 @@
                             </tr>
                         </tbody>
                     </table>
+                </div>
+            </section>
+
+            <!-- Sección de Autoridades -->
+            <section class="dashboard-section" id="section-autoridades">
+                <div class="section-header">
+                    <h2>Gestionar Autoridades</h2>
+                    <button id="btn-nueva-autoridad" class="btn btn-primary btn-large">
+                        ➕ Nueva Autoridad
+                    </button>
+                </div>
+
+                <!-- Modal para crear/editar autoridad -->
+                <div id="modal-autoridad" class="modal">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h3 id="modal-autoridad-titulo">Nueva Autoridad</h3>
+                            <button class="modal-close" id="modal-autoridad-close">&times;</button>
+                        </div>
+                        <form id="autoridad-form" class="modal-form">
+                            <div class="form-group">
+                                <label for="autoridad-nombre">Nombre *</label>
+                                <input type="text" id="autoridad-nombre" placeholder="Ej: Dr. Juan García" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="autoridad-cargo">Cargo *</label>
+                                <input type="text" id="autoridad-cargo" placeholder="Ej: Decano" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="autoridad-email">Email</label>
+                                <input type="email" id="autoridad-email" placeholder="Ej: juan@unf.edu.ar">
+                            </div>
+                            <div class="form-group">
+                                <label for="autoridad-telefono">Teléfono</label>
+                                <input type="tel" id="autoridad-telefono" placeholder="Ej: +54 9 123 456 7890">
+                            </div>
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-success">Guardar Autoridad</button>
+                                <button type="button" id="autoridad-form-cancel" class="btn btn-secondary">Cancelar</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Tabla de autoridades -->
+                <div class="table-wrapper">
+                    <table class="autoridades-table">
+                        <thead>
+                            <tr>
+                                <th>Nombre</th>
+                                <th>Cargo</th>
+                                <th>Email</th>
+                                <th>Teléfono</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-autoridades-list">
+                            <tr>
+                                <td colspan="5" class="text-center">Cargando autoridades...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Sección de Mensajes -->
+            <section class="dashboard-section" id="section-mensajes">
+                <div class="section-header">
+                    <h2>Mensajes de Contacto</h2>
+                    <p style="font-size: 0.9rem; color: #666; margin: 0;">
+                        <span id="mensajes-no-leidos">0</span> sin leer
+                    </p>
+                </div>
+
+                <!-- Tabla de mensajes -->
+                <div class="table-wrapper">
+                    <table class="mensajes-table">
+                        <thead>
+                            <tr>
+                                <th>De</th>
+                                <th>Asunto</th>
+                                <th>Fecha</th>
+                                <th>Estado</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-mensajes-list">
+                            <tr>
+                                <td colspan="5" class="text-center">Cargando mensajes...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Modal para ver mensajes -->
+                <div id="modal-mensaje" class="modal">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h3>Mensaje de Contacto</h3>
+                            <button class="modal-close" id="modal-mensaje-close">&times;</button>
+                        </div>
+                        <div class="modal-body" id="modal-mensaje-body">
+                            <!-- Contenido del mensaje se carga aquí -->
+                        </div>
+                        <div class="form-actions">
+                            <button id="btn-eliminar-mensaje" class="btn btn-danger">🗑️ Eliminar</button>
+                            <button class="modal-close-btn btn btn-secondary">Cerrar</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Sección de Configuración -->
+            <section class="dashboard-section" id="section-configuracion">
+                <div class="section-header">
+                    <h2>Configuración del Sitio</h2>
+                </div>
+
+                <div class="config-card">
+                    <h3>🔗 Preinscripción</h3>
+                    <p class="config-description">Habilita o deshabilita el enlace de preinscripción en la página principal</p>
+                    
+                    <div class="form-group">
+                        <label for="config-preinscripcion-enabled">
+                            <input type="checkbox" id="config-preinscripcion-enabled" class="checkbox-input">
+                            <span>Habilitar Preinscripción</span>
+                        </label>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="config-preinscripcion-url">URL de Preinscripción</label>
+                        <input type="url" id="config-preinscripcion-url" placeholder="https://guarani.unf.edu.ar/preinscripcion/unaf/?__o=" class="form-input">
+                    </div>
+
+                    <div class="form-actions">
+                        <button id="btn-guardar-config" class="btn btn-success">💾 Guardar Configuración</button>
+                    </div>
+
+                    <div id="config-message" class="message" style="display: none; margin-top: 15px;"></div>
                 </div>
             </section>
         </div>

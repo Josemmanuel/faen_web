@@ -1,7 +1,48 @@
-/* scripts.js - Sistema de Noticias */
+/* ========================================
+   FAEN ADMIN PANEL - MAIN JAVASCRIPT FILE
+   Clean, Independent Implementation
+   ======================================== */
 
-// Configuración de sesión
-const SESSION_TIMEOUT = 10 * 60 * 1000; // 10 minutos en milisegundos
+// ===== GLOBAL CONFIGURATION =====
+const SESSION_TIMEOUT = 10 * 60 * 1000; // 10 minutos
+let editingId = null;
+let editingCarreraId = null;
+let editingAutoridadId = null;
+let editingDocId = null;
+let currentMensajeId = null;
+let currentSlide = 0;
+let carouselPhotos = [];
+
+// ===== UTILITY FUNCTIONS =====
+function escapeHtml(unsafe) {
+    if (unsafe === null || unsafe === undefined) return '';
+    return String(unsafe)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+function makeExcerpt(text, max) {
+    if (!text) return '';
+    if (text.length <= max) return text;
+    return text.slice(0, max).trim() + '...';
+}
+
+function getAuthHeaders() {
+    const user = sessionStorage.getItem('admin_user') || 'admin';
+    const pass = sessionStorage.getItem('admin_pass') || '1234';
+    const credentials = btoa(user + ':' + pass);
+    console.log('getAuthHeaders - user:', user, 'pass:', pass, 'auth header:', 'Basic ' + credentials);
+    return {
+        'Authorization': 'Basic ' + credentials
+    };
+}
+
+function updateSessionActivity() {
+    sessionStorage.setItem('admin_last_activity', Date.now().toString());
+}
 
 function startSessionTimer() {
     const lastActivityKey = 'admin_last_activity';
@@ -19,10 +60,9 @@ function startSessionTimer() {
             logoutSession();
             clearInterval(checkSession);
         } else {
-            // Actualizar indicador de tiempo restante
             updateSessionTimer(elapsed);
         }
-    }, 10000); // Verificar cada 10 segundos
+    }, 10000);
 }
 
 function updateSessionTimer(elapsed) {
@@ -69,10 +109,6 @@ function logoutSession() {
     window.location.href = 'index.html';
 }
 
-function updateSessionActivity() {
-    sessionStorage.setItem('admin_last_activity', Date.now().toString());
-}
-
 function showLoginModal() {
     return new Promise((resolve) => {
         const modal = document.createElement('div');
@@ -97,45 +133,6 @@ function showLoginModal() {
         });
     });
 }
-
-document.addEventListener('DOMContentLoaded', async () => {
-    const isAdminPage = window.location.pathname.includes('admin.html') || 
-                       document.getElementById('admin-section') !== null ||
-                       document.getElementById('news-form') !== null;
-    
-    if (isAdminPage) {
-        const isAuthenticated = sessionStorage.getItem('admin_authenticated');
-        if (!isAuthenticated) {
-            const credentials = await showLoginModal();
-            if (!credentials) {
-                window.location.href = 'index.html';
-                return;
-            }
-            sessionStorage.setItem('admin_user', credentials.user);
-            sessionStorage.setItem('admin_pass', credentials.pass);
-            sessionStorage.setItem('admin_authenticated', 'true');
-            sessionStorage.setItem('admin_last_activity', Date.now().toString());
-        }
-        
-        // Iniciar timer de sesión y crear botón de logout
-        startSessionTimer();
-        createLogoutButton();
-        
-        // Actualizar actividad con cada interacción
-        document.addEventListener('click', updateSessionActivity);
-        document.addEventListener('keypress', updateSessionActivity);
-    }
-
-    const newsList = document.getElementById('news-list');
-    if (newsList) {
-        loadNews();
-    }
-
-    const newsForm = document.getElementById('news-form');
-    if (newsForm) {
-        setupAdminPanel(newsForm);
-    }
-});
 
 function createLogoutButton() {
     const header = document.querySelector('header');
@@ -174,216 +171,7 @@ function createLogoutButton() {
     logoutContainer.appendChild(button);
 }
 
-// --- FUNCIÓN PARA LEER Y MOSTRAR NOTICIAS ---
-function loadNews() {
-    const newsList = document.getElementById('news-list');
-    if (!newsList) return;
-    
-    newsList.innerHTML = '<p>Cargando noticias...</p>';
-    
-    fetch('/api/news')
-        .then(res => {
-            if (!res.ok) {
-                throw new Error('HTTP error, status = ' + res.status);
-            }
-            return res.json();
-        })
-        .then(newsData => {
-            if (!newsData || newsData.length === 0) {
-                newsList.innerHTML = '<p>No hay noticias publicadas.</p>';
-                return;
-            }
-
-            newsList.innerHTML = ''; // Limpiar el mensaje de carga
-
-            newsData.slice().reverse().forEach(news => {
-                const card = document.createElement('article');
-                card.className = 'news-card';
-
-                const imageSrc = news.image || '';
-                const newsId = encodeURIComponent(news.id);
-                const newsTitle = escapeHtml(news.title);
-                const newsDate = escapeHtml(news.date);
-                const excerpt = makeExcerpt(news.description, 220);
-                const newsExcerpt = escapeHtml(excerpt);
-
-                let htmlContent = '';
-                
-                if (imageSrc) {
-                    htmlContent = '<a href="news.html?id=' + newsId + '"><img src="' + imageSrc + '" alt="' + newsTitle + '"></a>';
-                }
-                
-                htmlContent += '<div class="news-content">';
-                htmlContent += '<div><a class="badge" href="news.html?id=' + newsId + '">NOTICIA</a></div>';
-                htmlContent += '<h3><a href="news.html?id=' + newsId + '">' + newsTitle + '</a></h3>';
-                htmlContent += '<div class="news-meta">Publicado: ' + newsDate + '</div>';
-                htmlContent += '<p class="excerpt">' + newsExcerpt + '</p>';
-                htmlContent += '</div>';
-
-                card.innerHTML = htmlContent;
-                newsList.appendChild(card);
-            });
-        })
-        .catch((error) => {
-            console.error('Error al cargar noticias:', error);
-            newsList.innerHTML = '<p>Error al cargar noticias: ' + error.message + '</p>';
-        });
-}
-
-// Utilidades
-function makeExcerpt(text, max) {
-    if (!text) return '';
-    if (text.length <= max) return text;
-    return text.slice(0, max).trim() + '...';
-}
-
-function escapeHtml(unsafe) {
-    if (unsafe === null || unsafe === undefined) return '';
-    return String(unsafe)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
-}
-
-// --- FUNCIÓN PARA PANEL DE ADMINISTRACIÓN ---
-function setupAdminPanel(newsForm) {
-    const adminList = document.getElementById('admin-news-list');
-    if (!adminList) return;
-
-    const cancelBtn = document.getElementById('cancel-edit');
-    let editingId = null;
-
-    function getAuthHeaders() {
-        const user = sessionStorage.getItem('admin_user') || 'admin';
-        const pass = sessionStorage.getItem('admin_pass') || '1234';
-        const credentials = btoa(user + ':' + pass);
-        return {
-            'Authorization': 'Basic ' + credentials
-        };
-    }
-
-    async function loadAdminNews() {
-        try {
-            const res = await fetch('/api/news');
-            const data = await res.json();
-            adminList.innerHTML = '';
-            if (!data || data.length === 0) {
-                adminList.innerHTML = '<p>No hay noticias.</p>';
-                return;
-            }
-            data.slice().reverse().forEach(n => {
-                const item = document.createElement('div');
-                item.className = 'news-item';
-                const itemHTML = '<h4>' + escapeHtml(n.title) + '</h4>' +
-                    '<small>' + escapeHtml(n.date) + '</small>' +
-                    '<p>' + escapeHtml(n.description) + '</p>' +
-                    '<div style="margin-top:8px;">' +
-                    '<button class="edit-btn" data-id="' + n.id + '">Editar</button>' +
-                    '<button class="delete-btn" data-id="' + n.id + '">Eliminar</button>' +
-                    '</div>';
-                item.innerHTML = itemHTML;
-                adminList.appendChild(item);
-            });
-
-            // Añadir listeners a los botones de editar
-            adminList.querySelectorAll('.edit-btn').forEach(btn => {
-                btn.addEventListener('click', async (e) => {
-                    const id = e.target.dataset.id;
-                    const res = await fetch('/api/news');
-                    const all = await res.json();
-                    const news = all.find(x => x.id === id);
-                    if (!news) return alert('Noticia no encontrada');
-                    document.getElementById('news-title').value = news.title;
-                    document.getElementById('news-description').value = news.description;
-                    document.getElementById('news-date').value = news.date;
-                    editingId = id;
-                    if (cancelBtn) cancelBtn.style.display = 'inline-block';
-                });
-            });
-
-            // Añadir listeners a los botones de eliminar
-            adminList.querySelectorAll('.delete-btn').forEach(btn => {
-                btn.addEventListener('click', async (e) => {
-                    const id = e.target.dataset.id;
-                    if (!confirm('¿Eliminar esta noticia?')) return;
-                    const res = await fetch('/api/news/' + id, {
-                        method: 'DELETE',
-                        headers: getAuthHeaders()
-                    });
-                    if (res.ok) {
-                        await loadAdminNews();
-                        alert('Noticia eliminada');
-                    } else {
-                        const err = await res.json().catch(() => null);
-                        alert('Error al eliminar: ' + (err && err.error ? err.error : res.statusText));
-                    }
-                });
-            });
-
-        } catch (err) {
-            adminList.innerHTML = '<p>Error cargando noticias.</p>';
-        }
-    }
-
-    newsForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const title = document.getElementById('news-title').value;
-        const description = document.getElementById('news-description').value;
-        const date = document.getElementById('news-date').value;
-        const imageInput = document.getElementById('news-image');
-
-        const formData = new FormData();
-        formData.append('title', title);
-        formData.append('description', description);
-        formData.append('date', date);
-        if (imageInput.files && imageInput.files[0]) {
-            formData.append('image', imageInput.files[0]);
-        }
-
-        const method = editingId ? 'PUT' : 'POST';
-        const url = editingId ? '/api/news/' + editingId : '/api/news';
-
-        const user = sessionStorage.getItem('admin_user') || 'admin';
-        const pass = sessionStorage.getItem('admin_pass') || '1234';
-        const credentials = btoa(user + ':' + pass);
-        
-        const res = await fetch(url, {
-            method: method,
-            body: formData,
-            headers: {
-                'Authorization': 'Basic ' + credentials
-            }
-        });
-        if (res.ok) {
-            alert(editingId ? 'Noticia actualizada' : 'Noticia creada');
-            newsForm.reset();
-            editingId = null;
-            if (cancelBtn) cancelBtn.style.display = 'none';
-            await loadAdminNews();
-        } else {
-            const text = await res.text();
-            alert('Error: ' + text);
-        }
-    });
-
-    if (cancelBtn) {
-        cancelBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            newsForm.reset();
-            editingId = null;
-            cancelBtn.style.display = 'none';
-        });
-    }
-
-    loadAdminNews();
-}
-
-// --- CARRUSEL DE FOTOS ---
-let currentSlide = 0;
-let carouselPhotos = [];
-
+// ===== CAROUSEL FUNCTIONS =====
 async function loadCarousel() {
     const carouselContainer = document.getElementById('carousel-container');
     const carouselTrack = document.getElementById('carousel-track');
@@ -405,7 +193,6 @@ async function loadCarousel() {
         carouselDots.innerHTML = '';
 
         photos.forEach((photo, index) => {
-            // Crear slide
             const slide = document.createElement('div');
             slide.className = 'carousel-slide';
             slide.innerHTML = '<img src="' + escapeHtml(photo.ruta) + '" alt="' + escapeHtml(photo.titulo) + '">' +
@@ -415,7 +202,6 @@ async function loadCarousel() {
                 '</div>';
             carouselTrack.appendChild(slide);
 
-            // Crear punto de navegación
             const dot = document.createElement('button');
             dot.className = 'carousel-dot' + (index === 0 ? ' active' : '');
             dot.onclick = () => goToSlide(index);
@@ -425,7 +211,6 @@ async function loadCarousel() {
         currentSlide = 0;
         updateCarouselPosition();
         
-        // Auto-avance del carrusel cada 5 segundos
         setInterval(() => {
             currentSlide = (currentSlide + 1) % carouselPhotos.length;
             updateCarouselPosition();
@@ -443,7 +228,6 @@ function updateCarouselPosition() {
         track.style.transform = 'translateX(-' + (currentSlide * 100) + '%)';
     }
 
-    // Actualizar puntos
     const dots = document.querySelectorAll('.carousel-dot');
     dots.forEach((dot, index) => {
         if (index === currentSlide) {
@@ -475,490 +259,107 @@ function goToSlide(index) {
     }
 }
 
-// Llamar a loadCarousel en el DOMContentLoaded si estamos en index.html
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-        if (document.getElementById('carousel-container')) {
-            loadCarousel();
-        }
-    });
-} else {
-    if (document.getElementById('carousel-container')) {
-        loadCarousel();
-    }
-}/* Admin Dashboard Scripts */
-
-let editingId = null;
-let galeriaFotos = []; // Array para almacenar referencias a fotos
-
-document.addEventListener('DOMContentLoaded', () => {
-    // ===== SECCIONES =====
-    const navItems = document.querySelectorAll('.nav-item');
-    const sections = document.querySelectorAll('.dashboard-section');
-
-    navItems.forEach(item => {
-        item.addEventListener('click', (e) => {
-            const href = item.getAttribute('href');
-            if (href === 'index.html') return; // Permitir link a index
-            
-            e.preventDefault();
-            const sectionId = item.dataset.section;
-            if (!sectionId) return;
-
-            // Actualizar nav activo
-            navItems.forEach(nav => nav.classList.remove('active'));
-            item.classList.add('active');
-
-            // Actualizar sección visible
-            sections.forEach(sec => sec.classList.remove('active'));
-            document.getElementById('section-' + sectionId).classList.add('active');
-
-            if (sectionId === 'galeria') {
-                loadGaleria();
-            }
-            
-            if (sectionId === 'documentos') {
-                loadAdminDocumentos();
-            }
-        });
-    });
-
-    // ===== NOTICIAS =====
-    const modal = document.getElementById('modal-noticia');
-    const btnNuevaNoticia = document.getElementById('btn-nueva-noticia');
-    const modalClose = document.getElementById('modal-close');
-    const formCancel = document.getElementById('form-cancel');
-    const newsForm = document.getElementById('news-form');
-    const fileInput = document.getElementById('news-image');
-    const fileName = document.getElementById('file-name');
-    const imagePreview = document.getElementById('image-preview');
-
-    // Abrir modal de noticia
-    btnNuevaNoticia.addEventListener('click', (e) => {
-        e.preventDefault();
-        editingId = null;
-        newsForm.reset();
-        imagePreview.innerHTML = '';
-        fileName.textContent = 'Ningún archivo seleccionado';
-        document.getElementById('modal-titulo').textContent = 'Nueva Noticia';
-        modal.classList.add('active');
-    });
-
-    // Cerrar modal de noticia
-    const closeModal = () => {
-        modal.classList.remove('active');
-        editingId = null;
-        newsForm.reset();
-        imagePreview.innerHTML = '';
-        fileName.textContent = 'Ningún archivo seleccionado';
-    };
-
-    modalClose.addEventListener('click', closeModal);
-    formCancel.addEventListener('click', closeModal);
-
-    modal.addEventListener('click', (e) => {
-        if (e.target === modal) {
-            closeModal();
-        }
-    });
-
-    // Mostrar nombre del archivo de noticia
-    fileInput.addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            fileName.textContent = file.name;
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                imagePreview.innerHTML = '<img src="' + event.target.result + '" alt="Preview">';
-            };
-            reader.readAsDataURL(file);
-        } else {
-            fileName.textContent = 'Ningún archivo seleccionado';
-            imagePreview.innerHTML = '';
-        }
-    });
-
-    // Enviar formulario de noticia
-    newsForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        
-        const title = document.getElementById('news-title').value;
-        const description = document.getElementById('news-description').value;
-        const date = document.getElementById('news-date').value;
-        const imageInput = document.getElementById('news-image');
-
-        const formData = new FormData();
-        formData.append('title', title);
-        formData.append('description', description);
-        formData.append('date', date);
-        
-        if (imageInput.files && imageInput.files[0]) {
-            formData.append('image', imageInput.files[0]);
-        }
-
-        const method = editingId ? 'PUT' : 'POST';
-        const url = editingId ? '/api/news/' + editingId : '/api/news';
-
-        const user = sessionStorage.getItem('admin_user') || 'admin';
-        const pass = sessionStorage.getItem('admin_pass') || '1234';
-        const credentials = btoa(user + ':' + pass);
-        
-        try {
-            const res = await fetch(url, {
-                method: method,
-                body: formData,
-                headers: {
-                    'Authorization': 'Basic ' + credentials
-                }
-            });
-            
-            if (res.ok) {
-                alert(editingId ? 'Noticia actualizada correctamente' : 'Noticia creada correctamente');
-                closeModal();
-                await loadAdminNews();
-            } else {
-                const text = await res.text();
-                alert('Error: ' + text);
-            }
-        } catch (error) {
-            alert('Error al guardar la noticia: ' + error.message);
-        }
-    });
-
-    // ===== GALERÍA =====
-    const modalFoto = document.getElementById('modal-foto');
-    const btnSubirFoto = document.getElementById('btn-subir-foto');
-    const modalFotoClose = document.getElementById('modal-foto-close');
-    const fotoFormCancel = document.getElementById('foto-form-cancel');
-    const fotoForm = document.getElementById('foto-form');
-    const fotoFileInput = document.getElementById('foto-file');
-    const fotoFileName = document.getElementById('foto-file-name');
-    const fotoPreview = document.getElementById('foto-preview');
-
-    // Abrir modal de foto
-    btnSubirFoto.addEventListener('click', (e) => {
-        e.preventDefault();
-        fotoForm.reset();
-        fotoPreview.innerHTML = '';
-        fotoFileName.textContent = 'Ningún archivo seleccionado';
-        modalFoto.classList.add('active');
-    });
-
-    // Cerrar modal de foto
-    const closeFotoModal = () => {
-        modalFoto.classList.remove('active');
-        fotoForm.reset();
-        fotoPreview.innerHTML = '';
-        fotoFileName.textContent = 'Ningún archivo seleccionado';
-    };
-
-    modalFotoClose.addEventListener('click', closeFotoModal);
-    fotoFormCancel.addEventListener('click', closeFotoModal);
-
-    modalFoto.addEventListener('click', (e) => {
-        if (e.target === modalFoto) {
-            closeFotoModal();
-        }
-    });
-
-    // Mostrar nombre del archivo de foto
-    fotoFileInput.addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            fotoFileName.textContent = file.name;
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                fotoPreview.innerHTML = '<img src="' + event.target.result + '" alt="Preview">';
-            };
-            reader.readAsDataURL(file);
-        } else {
-            fotoFileName.textContent = 'Ningún archivo seleccionado';
-            fotoPreview.innerHTML = '';
-        }
-    });
-
-    // Enviar formulario de foto
-    fotoForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        
-        const titulo = document.getElementById('foto-titulo').value || 'Sin título';
-        const fileInput = document.getElementById('foto-file');
-
-        if (!fileInput.files || !fileInput.files[0]) {
-            alert('Por favor selecciona una foto');
-            return;
-        }
-
-        const formData = new FormData();
-        formData.append('titulo', titulo);
-        formData.append('foto', fileInput.files[0]);
-
-        const user = sessionStorage.getItem('admin_user') || 'admin';
-        const pass = sessionStorage.getItem('admin_pass') || '1234';
-        const credentials = btoa(user + ':' + pass);
-        
-        try {
-            const res = await fetch('/api/galeria/subir', {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'Authorization': 'Basic ' + credentials
-                }
-            });
-            
-            if (res.ok) {
-                alert('Foto subida correctamente');
-                closeFotoModal();
-                await loadGaleria();
-            } else {
-                const text = await res.text();
-                alert('Error: ' + text);
-            }
-        } catch (error) {
-            alert('Error al subir la foto: ' + error.message);
-        }
-    });
-
-    // Cargar noticias al iniciar
-    loadAdminNews();
-
-    // ===== DOCUMENTOS =====
-    const modalDoc = document.getElementById('modal-documento');
-    const btnNuevoDoc = document.getElementById('btn-nuevo-documento');
-    const modalDocClose = document.getElementById('modal-doc-close');
-    const docFormCancel = document.getElementById('doc-form-cancel');
-    const docForm = document.getElementById('documento-form');
-    const docFileInput = document.getElementById('doc-file');
-    const docFileName = document.getElementById('doc-file-name');
-
-    if (btnNuevoDoc) {
-        // Abrir modal de documento
-        btnNuevoDoc.addEventListener('click', (e) => {
-            e.preventDefault();
-            docForm.reset();
-            docFileName.textContent = 'Ningún archivo seleccionado';
-            document.getElementById('modal-doc-titulo').textContent = 'Nuevo Documento';
-            window.editingDocId = null;
-            modalDoc.classList.add('active');
-        });
-    }
-
-    if (modalDocClose) {
-        // Cerrar modal de documento
-        modalDocClose.addEventListener('click', (e) => {
-            e.preventDefault();
-            modalDoc.classList.remove('active');
-            docForm.reset();
-            docFileName.textContent = 'Ningún archivo seleccionado';
-            window.editingDocId = null;
-        });
-    }
-
-    if (docFormCancel) {
-        docFormCancel.addEventListener('click', (e) => {
-            e.preventDefault();
-            modalDoc.classList.remove('active');
-            docForm.reset();
-            docFileName.textContent = 'Ningún archivo seleccionado';
-            window.editingDocId = null;
-        });
-    }
-
-    // Cerrar modal al clickear fuera
-    if (modalDoc) {
-        modalDoc.addEventListener('click', (e) => {
-            if (e.target === modalDoc) {
-                modalDoc.classList.remove('active');
-                docForm.reset();
-                docFileName.textContent = 'Ningún archivo seleccionado';
-                window.editingDocId = null;
-            }
-        });
-    }
-
-    // Mostrar nombre del archivo de documento
-    if (docFileInput) {
-        docFileInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (file) {
-                docFileName.textContent = file.name;
-            } else {
-                docFileName.textContent = 'Ningún archivo seleccionado';
-            }
-        });
-    }
-
-    // Enviar formulario de documento
-    if (docForm) {
-        docForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const title = document.getElementById('doc-title').value;
-            const category = document.getElementById('doc-category').value;
-            const description = document.getElementById('doc-description').value;
-            const fileInput = document.getElementById('doc-file');
-
-            if (!fileInput.files || !fileInput.files[0]) {
-                alert('Por favor selecciona un archivo PDF');
-                return;
-            }
-
-            const formData = new FormData();
-            formData.append('title', title);
-            formData.append('category', category);
-            formData.append('description', description);
-            formData.append('file', fileInput.files[0]);
-
-            const method = window.editingDocId ? 'PUT' : 'POST';
-            const url = window.editingDocId ? '/api/documents/' + window.editingDocId : '/api/documents';
-
-            const user = sessionStorage.getItem('admin_user') || 'admin';
-            const pass = sessionStorage.getItem('admin_pass') || '1234';
-            const credentials = btoa(user + ':' + pass);
-            
-            try {
-                const res = await fetch(url, {
-                    method: method,
-                    body: formData,
-                    headers: {
-                        'Authorization': 'Basic ' + credentials
-                    }
-                });
-                
-                if (res.ok) {
-                    alert(window.editingDocId ? 'Documento actualizado correctamente' : 'Documento creado correctamente');
-                    modalDoc.classList.remove('active');
-                    docForm.reset();
-                    docFileName.textContent = 'Ningún archivo seleccionado';
-                    window.editingDocId = null;
-                    await loadAdminDocumentos();
-                } else {
-                    const text = await res.text();
-                    alert('Error: ' + text);
-                }
-            } catch (error) {
-                alert('Error al guardar el documento: ' + error.message);
-            }
-        });
-    }
-});
-
-async function loadAdminDocumentos() {
-    const adminDocsList = document.getElementById('admin-docs-list');
-    if (!adminDocsList) return;
+// ===== NEWS FUNCTIONS =====
+async function loadNews() {
+    const newsList = document.getElementById('news-list');
+    if (!newsList) return;
+    
+    newsList.innerHTML = '<p>Cargando noticias...</p>';
     
     try {
-        const res = await fetch('/api/documents');
-        const data = await res.json();
+        const res = await fetch('/api/news');
+        if (!res.ok) throw new Error('HTTP error');
+        const newsData = await res.json();
         
-        adminDocsList.innerHTML = '';
-        
-        if (!data || data.length === 0) {
-            adminDocsList.innerHTML = '<tr><td colspan="5" class="text-center">No hay documentos subidos aún</td></tr>';
+        if (!newsData || newsData.length === 0) {
+            newsList.innerHTML = '<p>No hay noticias publicadas.</p>';
             return;
         }
 
-        data.slice().reverse().forEach(doc => {
-            const row = document.createElement('tr');
+        newsList.innerHTML = '';
+
+        newsData.slice().reverse().forEach(news => {
+            const card = document.createElement('article');
+            card.className = 'news-card';
+
+            const imageSrc = news.image || '';
+            const newsId = encodeURIComponent(news.id);
+            const newsTitle = escapeHtml(news.title);
+            const newsDate = escapeHtml(news.date);
+            const excerpt = makeExcerpt(news.description, 220);
+            const newsExcerpt = escapeHtml(excerpt);
+
+            let htmlContent = '';
             
-            const title = escapeHtml(doc.title);
-            const category = escapeHtml(doc.category || 'Sin categoría');
-            const description = escapeHtml(doc.description || '');
-            const date = escapeHtml(doc.uploadedAt || '');
+            if (imageSrc) {
+                htmlContent = '<a href="news.html?id=' + newsId + '"><img src="' + imageSrc + '" alt="' + newsTitle + '"></a>';
+            }
+            
+            htmlContent += '<div class="news-content">';
+            htmlContent += '<div><a class="badge" href="news.html?id=' + newsId + '">NOTICIA</a></div>';
+            htmlContent += '<h3><a href="news.html?id=' + newsId + '">' + newsTitle + '</a></h3>';
+            htmlContent += '<div class="news-meta">Publicado: ' + newsDate + '</div>';
+            htmlContent += '<p class="excerpt">' + newsExcerpt + '</p>';
+            htmlContent += '</div>';
 
-            row.innerHTML = '<td><div class="tabla-titulo">' + title + '</div></td>' +
-                '<td>' + category + '</td>' +
-                '<td><div class="tabla-descripcion">' + description + '</div></td>' +
-                '<td>' + date + '</td>' +
-                '<td><div class="tabla-acciones">' +
-                '<button class="btn btn-edit edit-doc-btn" data-id="' + doc.id + '">✏️ Editar</button>' +
-                '<button class="btn btn-danger delete-doc-btn" data-id="' + doc.id + '">🗑️ Eliminar</button>' +
-                '</div></td>';
-
-            adminDocsList.appendChild(row);
+            card.innerHTML = htmlContent;
+            newsList.appendChild(card);
         });
-
-        document.querySelectorAll('.edit-doc-btn').forEach(btn => {
-            btn.addEventListener('click', async (e) => {
-                e.preventDefault();
-                const id = e.target.dataset.id;
-                await editDocumento(id);
-            });
-        });
-
-        document.querySelectorAll('.delete-doc-btn').forEach(btn => {
-            btn.addEventListener('click', async (e) => {
-                e.preventDefault();
-                const id = e.target.dataset.id;
-                await deleteDocumento(id);
-            });
-        });
-
-    } catch (err) {
-        console.error('Error cargando documentos:', err);
-        adminDocsList.innerHTML = '<tr><td colspan="5" class="text-center">Error cargando documentos</td></tr>';
+    } catch (error) {
+        console.error('Error al cargar noticias:', error);
+        newsList.innerHTML = '<p>Error al cargar noticias: ' + error.message + '</p>';
     }
 }
 
-async function editDocumento(id) {
+async function loadPreinscripcionConfig() {
     try {
-        const res = await fetch('/api/documents');
-        const all = await res.json();
-        const doc = all.find(x => x.id === id);
-        
-        if (!doc) {
-            alert('Documento no encontrado');
+        const res = await fetch('/api/config/preinscripcion');
+        if (!res.ok) {
+            console.log('No config found');
             return;
         }
-
-        document.getElementById('doc-title').value = doc.title;
-        document.getElementById('doc-category').value = doc.category || '';
-        document.getElementById('doc-description').value = doc.description || '';
-        document.getElementById('modal-doc-titulo').textContent = 'Editar Documento';
-
-        window.editingDocId = id;
-        const modal = document.getElementById('modal-documento');
-        modal.classList.add('active');
-    } catch (err) {
-        alert('Error cargando documento: ' + err.message);
+        
+        const config = await res.json();
+        const preinscripcionItem = document.getElementById('preinscripcion-item');
+        const preinscripcionLink = document.getElementById('preinscripcion-link');
+        
+        if (preinscripcionItem && preinscripcionLink) {
+            if (config.enabled) {
+                preinscripcionItem.style.display = 'block';
+                preinscripcionLink.href = config.url || 'https://guarani.unf.edu.ar/preinscripcion/unaf/?__o=';
+            } else {
+                preinscripcionItem.style.display = 'none';
+            }
+        }
+    } catch (error) {
+        console.log('Error loading preinscripcion config:', error);
     }
 }
 
-async function deleteDocumento(id) {
-    if (!confirm('¿Estás seguro de que deseas eliminar este documento?')) {
-        return;
-    }
+async function loadConfigPage() {
+    const preinscripcionEnabled = document.getElementById('config-preinscripcion-enabled');
+    const preinscripcionUrl = document.getElementById('config-preinscripcion-url');
+    
+    if (!preinscripcionEnabled || !preinscripcionUrl) return;
 
     try {
-        const res = await fetch('/api/documents/' + id, {
-            method: 'DELETE',
+        const res = await fetch('/api/config/preinscripcion', {
             headers: getAuthHeaders()
         });
 
         if (res.ok) {
-            alert('Documento eliminado correctamente');
-            await loadAdminDocumentos();
-        } else {
-            const err = await res.json().catch(() => null);
-            alert('Error al eliminar: ' + (err && err.error ? err.error : res.statusText));
+            const config = await res.json();
+            preinscripcionEnabled.checked = config.enabled || false;
+            preinscripcionUrl.value = config.url || 'https://guarani.unf.edu.ar/preinscripcion/unaf/?__o=';
         }
     } catch (error) {
-        alert('Error al eliminar el documento: ' + error.message);
+        console.error('Error loading config:', error);
     }
-}
-
-
-function getAuthHeaders() {
-    const user = sessionStorage.getItem('admin_user') || 'admin';
-    const pass = sessionStorage.getItem('admin_pass') || '1234';
-    const credentials = btoa(user + ':' + pass);
-    return {
-        'Authorization': 'Basic ' + credentials
-    };
 }
 
 async function loadAdminNews() {
     const adminList = document.getElementById('admin-news-list');
+    if (!adminList) return;
     
     try {
         const res = await fetch('/api/news');
@@ -1032,7 +433,6 @@ async function editNews(id) {
             return;
         }
 
-        const editingId = id;
         document.getElementById('news-title').value = news.title;
         document.getElementById('news-description').value = news.description || '';
         document.getElementById('news-date').value = news.date;
@@ -1044,7 +444,7 @@ async function editNews(id) {
             document.getElementById('file-name').textContent = 'Imagen actual';
         }
 
-        window.editingId = editingId;
+        editingId = id;
         const modal = document.getElementById('modal-noticia');
         modal.classList.add('active');
     } catch (err) {
@@ -1075,8 +475,11 @@ async function deleteNews(id) {
     }
 }
 
+// ===== GALLERY FUNCTIONS =====
 async function loadGaleria() {
     const galeriaGrid = document.getElementById('galeria-grid');
+    if (!galeriaGrid) return;
+
     galeriaGrid.innerHTML = '<p class="text-center" style="grid-column: 1 / -1;">Cargando fotos...</p>';
 
     try {
@@ -1142,62 +545,1150 @@ async function deleteFoto(id) {
     }
 }
 
-function escapeHtml(unsafe) {
-    if (unsafe === null || unsafe === undefined) return '';
-    return String(unsafe)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
+// ===== CARRERAS FUNCTIONS =====
+async function loadAdminCarreras() {
+    const adminCarrerasList = document.getElementById('admin-carreras-list');
+    if (!adminCarrerasList) return;
+    
+    try {
+        const res = await fetch('/api/carreras');
+        const data = await res.json();
+        
+        adminCarrerasList.innerHTML = '';
+        
+        if (!data || data.length === 0) {
+            adminCarrerasList.innerHTML = '<tr><td colspan="5" class="text-center">No hay carreras aún</td></tr>';
+            return;
+        }
+
+        data.forEach(carrera => {
+            const row = document.createElement('tr');
+            
+            const title = escapeHtml(carrera.title);
+            const code = escapeHtml(carrera.code);
+            const description = escapeHtml(carrera.description || '');
+            const duration = carrera.duration || 1;
+
+            row.innerHTML = '<td><div class="tabla-titulo">' + title + '</div></td>' +
+                '<td><code>' + code + '</code></td>' +
+                '<td><div class="tabla-descripcion">' + description + '</div></td>' +
+                '<td>' + duration + ' años</td>' +
+                '<td><div class="tabla-acciones">' +
+                '<button class="btn btn-edit edit-carrera-btn" data-id="' + carrera.id + '">✏️ Editar</button>' +
+                '<button class="btn btn-danger delete-carrera-btn" data-id="' + carrera.id + '">🗑️ Eliminar</button>' +
+                '</div></td>';
+
+            adminCarrerasList.appendChild(row);
+        });
+
+        document.querySelectorAll('.edit-carrera-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.preventDefault();
+                const id = e.target.dataset.id;
+                await editCarrera(id);
+            });
+        });
+
+        document.querySelectorAll('.delete-carrera-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.preventDefault();
+                const id = e.target.dataset.id;
+                await deleteCarrera(id);
+            });
+        });
+
+    } catch (err) {
+        console.error('Error cargando carreras:', err);
+        adminCarrerasList.innerHTML = '<tr><td colspan="5" class="text-center">Error cargando carreras</td></tr>';
+    }
 }
-/* news-detail.js - Cargar y mostrar noticia individual */
 
-document.addEventListener('DOMContentLoaded', async () => {
-    // Obtener el ID de la noticia desde la URL
-    const urlParams = new URLSearchParams(window.location.search);
-    const newsId = urlParams.get('id');
+async function editCarrera(id) {
+    try {
+        const res = await fetch('/api/carreras');
+        const all = await res.json();
+        const carrera = all.find(x => x.id === id);
+        
+        if (!carrera) {
+            alert('Carrera no encontrada');
+            return;
+        }
 
-    if (!newsId) {
-        document.getElementById('news-detail').innerHTML = '<p>Noticia no encontrada. <a href="index.html">Volver a noticias</a></p>';
+        document.getElementById('carrera-title').value = carrera.title;
+        document.getElementById('carrera-code').value = carrera.code;
+        document.getElementById('carrera-description').value = carrera.description || '';
+        document.getElementById('carrera-duration').value = carrera.duration;
+        document.getElementById('modal-carrera-titulo').textContent = 'Editar Carrera';
+
+        editingCarreraId = id;
+        const modal = document.getElementById('modal-carrera');
+        modal.classList.add('active');
+    } catch (err) {
+        alert('Error cargando carrera: ' + err.message);
+    }
+}
+
+async function deleteCarrera(id) {
+    if (!confirm('¿Estás seguro de que deseas eliminar esta carrera?')) {
         return;
     }
 
     try {
-        const res = await fetch('/api/news/' + decodeURIComponent(newsId));
-        if (!res.ok) {
-            throw new Error('Noticia no encontrada');
-        }
-        const news = await res.json();
+        const res = await fetch('/api/carreras/' + id, {
+            method: 'DELETE',
+            headers: getAuthHeaders()
+        });
 
-        // Llenar los datos de la noticia
-        document.getElementById('news-title').textContent = news.title || 'Sin título';
-        document.getElementById('news-date').textContent = 'Publicado: ' + (news.date || 'Sin fecha');
-        document.getElementById('news-body').innerHTML = '<p>' + escapeHtml(news.description || 'Sin descripción') + '</p>';
-        
-        // Mostrar imagen si existe
-        const imageContainer = document.getElementById('news-image-container');
-        if (news.image) {
-            imageContainer.innerHTML = '<img src="' + news.image + '" alt="' + escapeHtml(news.title) + '" class="news-detail-img">';
+        if (res.ok) {
+            alert('Carrera eliminada correctamente');
+            await loadAdminCarreras();
         } else {
-            imageContainer.innerHTML = '<div class="news-detail-no-image">📷 Sin imagen</div>';
+            const err = await res.json().catch(() => null);
+            alert('Error al eliminar: ' + (err && err.error ? err.error : res.statusText));
+        }
+    } catch (error) {
+        alert('Error al eliminar la carrera: ' + error.message);
+    }
+}
+
+// ===== AUTORIDADES FUNCTIONS =====
+async function loadAdminAutoridades() {
+    const adminAutoridadesList = document.getElementById('admin-autoridades-list');
+    if (!adminAutoridadesList) return;
+    
+    try {
+        const res = await fetch('/api/autoridades');
+        const data = await res.json();
+        
+        adminAutoridadesList.innerHTML = '';
+        
+        if (!data || data.length === 0) {
+            adminAutoridadesList.innerHTML = '<tr><td colspan="5" class="text-center">No hay autoridades aún</td></tr>';
+            return;
         }
 
-        // Actualizar título de la página
-        document.title = news.title + ' - Noticias';
+        data.forEach(autoridad => {
+            const row = document.createElement('tr');
+            
+            const nombre = escapeHtml(autoridad.nombre);
+            const cargo = escapeHtml(autoridad.cargo);
+            const email = escapeHtml(autoridad.email || '-');
+            const telefono = escapeHtml(autoridad.telefono || '-');
 
+            row.innerHTML = '<td><div class="tabla-titulo">' + nombre + '</div></td>' +
+                '<td>' + cargo + '</td>' +
+                '<td>' + email + '</td>' +
+                '<td>' + telefono + '</td>' +
+                '<td><div class="tabla-acciones">' +
+                '<button class="btn btn-edit edit-autoridad-btn" data-id="' + autoridad.id + '">✏️ Editar</button>' +
+                '<button class="btn btn-danger delete-autoridad-btn" data-id="' + autoridad.id + '">🗑️ Eliminar</button>' +
+                '</div></td>';
+
+            adminAutoridadesList.appendChild(row);
+        });
+
+        document.querySelectorAll('.edit-autoridad-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.preventDefault();
+                const id = e.target.dataset.id;
+                await editAutoridad(id);
+            });
+        });
+
+        document.querySelectorAll('.delete-autoridad-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.preventDefault();
+                const id = e.target.dataset.id;
+                await deleteAutoridad(id);
+            });
+        });
+
+    } catch (err) {
+        console.error('Error cargando autoridades:', err);
+        adminAutoridadesList.innerHTML = '<tr><td colspan="5" class="text-center">Error cargando autoridades</td></tr>';
+    }
+}
+
+async function editAutoridad(id) {
+    try {
+        const res = await fetch('/api/autoridades');
+        const all = await res.json();
+        const autoridad = all.find(x => x.id === id);
+        
+        if (!autoridad) {
+            alert('Autoridad no encontrada');
+            return;
+        }
+
+        document.getElementById('autoridad-nombre').value = autoridad.nombre;
+        document.getElementById('autoridad-cargo').value = autoridad.cargo;
+        document.getElementById('autoridad-email').value = autoridad.email || '';
+        document.getElementById('autoridad-telefono').value = autoridad.telefono || '';
+        document.getElementById('modal-autoridad-titulo').textContent = 'Editar Autoridad';
+
+        editingAutoridadId = id;
+        const modal = document.getElementById('modal-autoridad');
+        modal.classList.add('active');
+    } catch (err) {
+        alert('Error cargando autoridad: ' + err.message);
+    }
+}
+
+async function deleteAutoridad(id) {
+    if (!confirm('¿Estás seguro de que deseas eliminar esta autoridad?')) {
+        return;
+    }
+
+    try {
+        const res = await fetch('/api/autoridades/' + id, {
+            method: 'DELETE',
+            headers: getAuthHeaders()
+        });
+
+        if (res.ok) {
+            alert('Autoridad eliminada correctamente');
+            await loadAdminAutoridades();
+        } else {
+            const err = await res.json().catch(() => null);
+            alert('Error al eliminar: ' + (err && err.error ? err.error : res.statusText));
+        }
     } catch (error) {
-        console.error('Error cargando noticia:', error);
-        document.getElementById('news-detail').innerHTML = '<p>Error al cargar la noticia. <a href="index.html">Volver a noticias</a></p>';
+        alert('Error al eliminar la autoridad: ' + error.message);
+    }
+}
+
+// ===== MENSAJES FUNCTIONS =====
+async function loadAdminMensajes() {
+    const adminMensajesList = document.getElementById('admin-mensajes-list');
+    if (!adminMensajesList) return;
+    
+    try {
+        const res = await fetch('/api/mensajes', {
+            headers: getAuthHeaders()
+        });
+        const data = await res.json();
+        
+        adminMensajesList.innerHTML = '';
+
+        const noLeidos = data.filter(m => !m.leido).length;
+        const indicator = document.getElementById('mensajes-no-leidos');
+        if (indicator) {
+            indicator.textContent = noLeidos;
+        }
+        
+        if (!data || data.length === 0) {
+            adminMensajesList.innerHTML = '<tr><td colspan="5" class="text-center">No hay mensajes</td></tr>';
+            return;
+        }
+
+        data.reverse().forEach(mensaje => {
+            const row = document.createElement('tr');
+            
+            const nombre = escapeHtml(mensaje.nombre);
+            const asunto = escapeHtml(mensaje.asunto);
+            const fecha = escapeHtml(mensaje.fecha);
+            const estado = mensaje.leido ? '✓ Leído' : '⚪ Sin leer';
+            const estadoClass = mensaje.leido ? 'leido' : 'no-leido';
+
+            row.innerHTML = '<td><div class="tabla-titulo">' + nombre + '</div></td>' +
+                '<td>' + asunto + '</td>' +
+                '<td>' + fecha + '</td>' +
+                '<td><span class="badge ' + estadoClass + '">' + estado + '</span></td>' +
+                '<td><div class="tabla-acciones">' +
+                '<button class="btn btn-edit ver-mensaje-btn" data-id="' + mensaje.id + '">👁️ Ver</button>' +
+                '<button class="btn btn-danger delete-mensaje-btn" data-id="' + mensaje.id + '">🗑️ Eliminar</button>' +
+                '</div></td>';
+
+            adminMensajesList.appendChild(row);
+        });
+
+        document.querySelectorAll('.ver-mensaje-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.preventDefault();
+                const id = e.target.dataset.id;
+                await viewMensaje(id);
+            });
+        });
+
+        document.querySelectorAll('.delete-mensaje-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.preventDefault();
+                const id = e.target.dataset.id;
+                await deleteMensaje(id);
+            });
+        });
+
+    } catch (err) {
+        console.error('Error cargando mensajes:', err);
+        adminMensajesList.innerHTML = '<tr><td colspan="5" class="text-center">Error cargando mensajes</td></tr>';
+    }
+}
+
+async function viewMensaje(id) {
+    try {
+        const res = await fetch('/api/mensajes/' + id, {
+            headers: getAuthHeaders()
+        });
+        const mensaje = await res.json();
+
+        console.log('Mensaje recibido:', mensaje);
+
+        const body = document.getElementById('modal-mensaje-body');
+        const textoMensaje = mensaje.mensaje || 'Sin contenido';
+        
+        body.innerHTML = '<div style="padding: 20px;">' +
+            '<p><strong>De:</strong> ' + escapeHtml(mensaje.nombre) + '</p>' +
+            '<p><strong>Email:</strong> <a href="mailto:' + escapeHtml(mensaje.email) + '">' + escapeHtml(mensaje.email) + '</a></p>' +
+            (mensaje.telefono ? '<p><strong>Teléfono:</strong> ' + escapeHtml(mensaje.telefono) + '</p>' : '') +
+            '<p><strong>Asunto:</strong> ' + escapeHtml(mensaje.asunto) + '</p>' +
+            '<p><strong>Fecha:</strong> ' + escapeHtml(mensaje.fecha) + '</p>' +
+            '<hr>' +
+            '<p><strong>Mensaje:</strong></p>' +
+            '<p style="white-space: pre-wrap; background: #f5f5f5; padding: 15px; border-radius: 4px; min-height: 100px;">' + escapeHtml(textoMensaje) + '</p>' +
+            '</div>';
+
+        if (!mensaje.leido) {
+            await fetch('/api/mensajes/' + id + '/leido', {
+                method: 'PUT',
+                headers: getAuthHeaders()
+            });
+            await loadAdminMensajes();
+        }
+
+        currentMensajeId = id;
+        document.getElementById('modal-mensaje').classList.add('active');
+    } catch (err) {
+        console.error('Error en viewMensaje:', err);
+        alert('Error cargando mensaje: ' + err.message);
+    }
+}
+
+async function deleteMensaje(id) {
+    if (!confirm('¿Eliminar este mensaje?')) {
+        return;
+    }
+
+    try {
+        const res = await fetch('/api/mensajes/' + id, {
+            method: 'DELETE',
+            headers: getAuthHeaders()
+        });
+
+        if (res.ok) {
+            alert('Mensaje eliminado');
+            document.getElementById('modal-mensaje').classList.remove('active');
+            await loadAdminMensajes();
+        } else {
+            alert('Error al eliminar el mensaje');
+        }
+    } catch (error) {
+        alert('Error: ' + error.message);
+    }
+}
+
+// ===== DOCUMENTOS FUNCTIONS =====
+async function loadAdminDocumentos() {
+    const adminDocsList = document.getElementById('admin-docs-list');
+    if (!adminDocsList) return;
+    
+    try {
+        const res = await fetch('/api/documents');
+        const data = await res.json();
+        
+        adminDocsList.innerHTML = '';
+        
+        if (!data || data.length === 0) {
+            adminDocsList.innerHTML = '<tr><td colspan="5" class="text-center">No hay documentos subidos aún</td></tr>';
+            return;
+        }
+
+        data.slice().reverse().forEach(doc => {
+            const row = document.createElement('tr');
+            
+            const title = escapeHtml(doc.title);
+            const category = escapeHtml(doc.category || 'Sin categoría');
+            const description = escapeHtml(doc.description || '');
+            const date = escapeHtml(doc.uploadedAt || '');
+
+            row.innerHTML = '<td><div class="tabla-titulo">' + title + '</div></td>' +
+                '<td>' + category + '</td>' +
+                '<td><div class="tabla-descripcion">' + description + '</div></td>' +
+                '<td>' + date + '</td>' +
+                '<td><div class="tabla-acciones">' +
+                '<button class="btn btn-edit edit-doc-btn" data-id="' + doc.id + '">✏️ Editar</button>' +
+                '<button class="btn btn-danger delete-doc-btn" data-id="' + doc.id + '">🗑️ Eliminar</button>' +
+                '</div></td>';
+
+            adminDocsList.appendChild(row);
+        });
+
+        document.querySelectorAll('.edit-doc-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.preventDefault();
+                const id = e.target.dataset.id;
+                await editDocumento(id);
+            });
+        });
+
+        document.querySelectorAll('.delete-doc-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.preventDefault();
+                const id = e.target.dataset.id;
+                await deleteDocumento(id);
+            });
+        });
+
+    } catch (err) {
+        console.error('Error cargando documentos:', err);
+        adminDocsList.innerHTML = '<tr><td colspan="5" class="text-center">Error cargando documentos</td></tr>';
+    }
+}
+
+async function editDocumento(id) {
+    try {
+        const res = await fetch('/api/documents');
+        const all = await res.json();
+        const doc = all.find(x => x.id === id);
+        
+        if (!doc) {
+            alert('Documento no encontrado');
+            return;
+        }
+
+        document.getElementById('doc-title').value = doc.title;
+        document.getElementById('doc-category').value = doc.category || '';
+        document.getElementById('doc-description').value = doc.description || '';
+        document.getElementById('modal-doc-titulo').textContent = 'Editar Documento';
+
+        editingDocId = id;
+        const modal = document.getElementById('modal-documento');
+        modal.classList.add('active');
+    } catch (err) {
+        alert('Error cargando documento: ' + err.message);
+    }
+}
+
+async function deleteDocumento(id) {
+    if (!confirm('¿Estás seguro de que deseas eliminar este documento?')) {
+        return;
+    }
+
+    try {
+        const res = await fetch('/api/documents/' + id, {
+            method: 'DELETE',
+            headers: getAuthHeaders()
+        });
+
+        if (res.ok) {
+            alert('Documento eliminado correctamente');
+            await loadAdminDocumentos();
+        } else {
+            const err = await res.json().catch(() => null);
+            alert('Error al eliminar: ' + (err && err.error ? err.error : res.statusText));
+        }
+    } catch (error) {
+        alert('Error al eliminar el documento: ' + error.message);
+    }
+}
+
+// ===== PUBLIC PAGE DOMEVENTLISTENER =====
+document.addEventListener('DOMContentLoaded', () => {
+    // Mobile menu for all pages
+    const menuToggle = document.getElementById('menu-toggle');
+    const navbarMenu = document.getElementById('navbar-menu');
+
+    if (menuToggle && navbarMenu) {
+        menuToggle.addEventListener('click', () => {
+            navbarMenu.classList.toggle('active');
+        });
+
+        const navLinks = navbarMenu.querySelectorAll('a:not(.dropdown-toggle)');
+        navLinks.forEach(link => {
+            link.addEventListener('click', () => {
+                navbarMenu.classList.remove('active');
+            });
+        });
+    }
+
+    // Dropdown menus
+    const dropdownToggles = document.querySelectorAll('.dropdown-toggle');
+    dropdownToggles.forEach(toggle => {
+        toggle.addEventListener('click', (e) => {
+            e.preventDefault();
+            const dropdown = toggle.closest('.dropdown');
+            
+            document.querySelectorAll('.dropdown.active').forEach(openDropdown => {
+                if (openDropdown !== dropdown) {
+                    openDropdown.classList.remove('active');
+                }
+            });
+            
+            dropdown.classList.toggle('active');
+        });
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.dropdown')) {
+            document.querySelectorAll('.dropdown.active').forEach(dropdown => {
+                dropdown.classList.remove('active');
+            });
+        }
+    });
+
+    const dropdownLinks = document.querySelectorAll('.dropdown-menu a');
+    dropdownLinks.forEach(link => {
+        link.addEventListener('click', () => {
+            document.querySelectorAll('.dropdown.active').forEach(dropdown => {
+                dropdown.classList.remove('active');
+            });
+            if (navbarMenu) {
+                navbarMenu.classList.remove('active');
+            }
+        });
+    });
+
+    // Load news on index page
+    const newsList = document.getElementById('news-list');
+    if (newsList) {
+        loadNews();
+    }
+
+    // Load carousel on index page
+    if (document.getElementById('carousel-container')) {
+        loadCarousel();
+    }
+
+    // Load preinscripcion config on index page
+    loadPreinscripcionConfig();
+
+    // Load news detail on news.html
+    const newsDetail = document.getElementById('news-detail');
+    if (newsDetail) {
+        const urlParams = new URLSearchParams(window.location.search);
+        const newsId = urlParams.get('id');
+
+        if (!newsId) {
+            newsDetail.innerHTML = '<p>Noticia no encontrada. <a href="index.html">Volver a noticias</a></p>';
+        } else {
+            fetch('/api/news/' + decodeURIComponent(newsId))
+                .then(res => {
+                    if (!res.ok) throw new Error('Noticia no encontrada');
+                    return res.json();
+                })
+                .then(news => {
+                    document.getElementById('news-title').textContent = news.title || 'Sin título';
+                    document.getElementById('news-date').textContent = 'Publicado: ' + (news.date || 'Sin fecha');
+                    document.getElementById('news-body').innerHTML = '<p>' + escapeHtml(news.description || 'Sin descripción') + '</p>';
+                    
+                    const imageContainer = document.getElementById('news-image-container');
+                    if (news.image) {
+                        imageContainer.innerHTML = '<img src="' + news.image + '" alt="' + escapeHtml(news.title) + '" class="news-detail-img">';
+                    } else {
+                        imageContainer.innerHTML = '<div class="news-detail-no-image">📷 Sin imagen</div>';
+                    }
+
+                    document.title = news.title + ' - Noticias';
+                })
+                .catch(error => {
+                    console.error('Error cargando noticia:', error);
+                    newsDetail.innerHTML = '<p>Error al cargar la noticia. <a href="index.html">Volver a noticias</a></p>';
+                });
+        }
     }
 });
 
-function escapeHtml(unsafe) {
-    if (unsafe === null || unsafe === undefined) return '';
-    return String(unsafe)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
-}
+// ===== ADMIN PAGE DOMEVENTLISTENER =====
+document.addEventListener('DOMContentLoaded', async () => {
+    const isAdminPage = window.location.pathname.includes('admin.html') || 
+                       document.querySelector('.dashboard-container') !== null;
+    
+    if (!isAdminPage) return;
+
+    // Admin authentication
+    const isAuthenticated = sessionStorage.getItem('admin_authenticated');
+    if (!isAuthenticated) {
+        const credentials = await showLoginModal();
+        if (!credentials) {
+            window.location.href = 'index.html';
+            return;
+        }
+        sessionStorage.setItem('admin_user', credentials.user);
+        sessionStorage.setItem('admin_pass', credentials.pass);
+        sessionStorage.setItem('admin_authenticated', 'true');
+        sessionStorage.setItem('admin_last_activity', Date.now().toString());
+    }
+    
+    startSessionTimer();
+    createLogoutButton();
+    
+    document.addEventListener('click', updateSessionActivity);
+    document.addEventListener('keypress', updateSessionActivity);
+
+    // Mobile menu for admin
+    const menuToggleAdmin = document.getElementById('menu-toggle-admin');
+    const dashboardSidebar = document.querySelector('.dashboard-sidebar');
+
+    if (menuToggleAdmin && dashboardSidebar) {
+        menuToggleAdmin.addEventListener('click', () => {
+            dashboardSidebar.classList.toggle('active');
+        });
+
+        const navItems = dashboardSidebar.querySelectorAll('.nav-item');
+        navItems.forEach(link => {
+            link.addEventListener('click', () => {
+                dashboardSidebar.classList.remove('active');
+            });
+        });
+    }
+
+    // Dashboard sections navigation
+    const navItems = document.querySelectorAll('.nav-item');
+    const sections = document.querySelectorAll('.dashboard-section');
+
+    navItems.forEach(item => {
+        item.addEventListener('click', (e) => {
+            const href = item.getAttribute('href');
+            if (href === 'index.html') return;
+            
+            e.preventDefault();
+            const sectionId = item.dataset.section;
+            if (!sectionId) return;
+
+            navItems.forEach(nav => nav.classList.remove('active'));
+            item.classList.add('active');
+
+            sections.forEach(sec => sec.classList.remove('active'));
+            const section = document.getElementById('section-' + sectionId);
+            if (section) {
+                section.classList.add('active');
+            }
+
+            if (sectionId === 'galeria') {
+                loadGaleria();
+            } else if (sectionId === 'documentos') {
+                loadAdminDocumentos();
+            } else if (sectionId === 'carreras') {
+                loadAdminCarreras();
+            } else if (sectionId === 'autoridades') {
+                loadAdminAutoridades();
+            } else if (sectionId === 'mensajes') {
+                loadAdminMensajes();
+            }
+        });
+    });
+
+    // NEWS MODAL SETUP
+    const modal = document.getElementById('modal-noticia');
+    const btnNuevaNoticia = document.getElementById('btn-nueva-noticia');
+    const modalClose = document.getElementById('modal-close');
+    const formCancel = document.getElementById('form-cancel');
+    const newsForm = document.getElementById('news-form');
+    const fileInput = document.getElementById('news-image');
+    const fileName = document.getElementById('file-name');
+    const imagePreview = document.getElementById('image-preview');
+
+    if (btnNuevaNoticia) {
+        btnNuevaNoticia.addEventListener('click', (e) => {
+            e.preventDefault();
+            editingId = null;
+            newsForm.reset();
+            imagePreview.innerHTML = '';
+            fileName.textContent = 'Ningún archivo seleccionado';
+            document.getElementById('modal-titulo').textContent = 'Nueva Noticia';
+            modal.classList.add('active');
+        });
+    }
+
+    const closeModal = () => {
+        modal.classList.remove('active');
+        editingId = null;
+        newsForm.reset();
+        imagePreview.innerHTML = '';
+        fileName.textContent = 'Ningún archivo seleccionado';
+    };
+
+    if (modalClose) modalClose.addEventListener('click', closeModal);
+    if (formCancel) formCancel.addEventListener('click', closeModal);
+
+    if (modal) {
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                closeModal();
+            }
+        });
+    }
+
+    if (fileInput) {
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                fileName.textContent = file.name;
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    imagePreview.innerHTML = '<img src="' + event.target.result + '" alt="Preview">';
+                };
+                reader.readAsDataURL(file);
+            } else {
+                fileName.textContent = 'Ningún archivo seleccionado';
+                imagePreview.innerHTML = '';
+            }
+        });
+    }
+
+    if (newsForm) {
+        newsForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const title = document.getElementById('news-title').value;
+            const description = document.getElementById('news-description').value;
+            const date = document.getElementById('news-date').value;
+            const imageInput = document.getElementById('news-image');
+
+            const formData = new FormData();
+            formData.append('title', title);
+            formData.append('description', description);
+            formData.append('date', date);
+            
+            if (imageInput.files && imageInput.files[0]) {
+                formData.append('image', imageInput.files[0]);
+            }
+
+            const method = editingId ? 'PUT' : 'POST';
+            const url = editingId ? '/api/news/' + editingId : '/api/news';
+
+            try {
+                console.log('Enviando noticia con método:', method, 'URL:', url);
+                console.log('Headers de autenticación:', getAuthHeaders());
+                const res = await fetch(url, {
+                    method: method,
+                    body: formData,
+                    headers: getAuthHeaders()
+                });
+                
+                if (res.ok) {
+                    alert(editingId ? 'Noticia actualizada correctamente' : 'Noticia creada correctamente');
+                    closeModal();
+                    await loadAdminNews();
+                } else {
+                    const text = await res.text();
+                    console.error('Error response:', res.status, text);
+                    alert('Error: ' + text);
+                }
+            } catch (error) {
+                alert('Error al guardar la noticia: ' + error.message);
+            }
+        });
+    }
+
+    // GALERIA MODAL SETUP
+    const modalFoto = document.getElementById('modal-foto');
+    const btnSubirFoto = document.getElementById('btn-subir-foto');
+    const modalFotoClose = document.getElementById('modal-foto-close');
+    const fotoFormCancel = document.getElementById('foto-form-cancel');
+    const fotoForm = document.getElementById('foto-form');
+    const fotoFileInput = document.getElementById('foto-file');
+    const fotoFileName = document.getElementById('foto-file-name');
+    const fotoPreview = document.getElementById('foto-preview');
+
+    if (btnSubirFoto) {
+        btnSubirFoto.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (fotoForm) fotoForm.reset();
+            fotoPreview.innerHTML = '';
+            fotoFileName.textContent = 'Ningún archivo seleccionado';
+            modalFoto.classList.add('active');
+        });
+    }
+
+    const closeFotoModal = () => {
+        modalFoto.classList.remove('active');
+        if (fotoForm) fotoForm.reset();
+        fotoPreview.innerHTML = '';
+        fotoFileName.textContent = 'Ningún archivo seleccionado';
+    };
+
+    if (modalFotoClose) modalFotoClose.addEventListener('click', closeFotoModal);
+    if (fotoFormCancel) fotoFormCancel.addEventListener('click', closeFotoModal);
+
+    if (modalFoto) {
+        modalFoto.addEventListener('click', (e) => {
+            if (e.target === modalFoto) {
+                closeFotoModal();
+            }
+        });
+    }
+
+    if (fotoFileInput) {
+        fotoFileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                fotoFileName.textContent = file.name;
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    fotoPreview.innerHTML = '<img src="' + event.target.result + '" alt="Preview">';
+                };
+                reader.readAsDataURL(file);
+            } else {
+                fotoFileName.textContent = 'Ningún archivo seleccionado';
+                fotoPreview.innerHTML = '';
+            }
+        });
+    }
+
+    if (fotoForm) {
+        fotoForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const titulo = document.getElementById('foto-titulo').value || 'Sin título';
+            const fileInput = document.getElementById('foto-file');
+
+            if (!fileInput.files || !fileInput.files[0]) {
+                alert('Por favor selecciona una foto');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('titulo', titulo);
+            formData.append('foto', fileInput.files[0]);
+
+            try {
+                const res = await fetch('/api/galeria/subir', {
+                    method: 'POST',
+                    body: formData,
+                    headers: getAuthHeaders()
+                });
+                
+                if (res.ok) {
+                    alert('Foto subida correctamente');
+                    closeFotoModal();
+                    await loadGaleria();
+                } else {
+                    const text = await res.text();
+                    alert('Error: ' + text);
+                }
+            } catch (error) {
+                alert('Error al subir la foto: ' + error.message);
+            }
+        });
+    }
+
+    // CARRERAS MODAL SETUP
+    const modalCarrera = document.getElementById('modal-carrera');
+    const btnNuevaCarrera = document.getElementById('btn-nueva-carrera');
+    const modalCarreraClose = document.getElementById('modal-carrera-close');
+    const carreraFormCancel = document.getElementById('carrera-form-cancel');
+    const carreraForm = document.getElementById('carrera-form');
+
+    if (btnNuevaCarrera) {
+        btnNuevaCarrera.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (carreraForm) carreraForm.reset();
+            document.getElementById('modal-carrera-titulo').textContent = 'Nueva Carrera';
+            editingCarreraId = null;
+            modalCarrera.classList.add('active');
+        });
+    }
+
+    const closeCarreraModal = () => {
+        modalCarrera.classList.remove('active');
+        if (carreraForm) carreraForm.reset();
+        editingCarreraId = null;
+    };
+
+    if (modalCarreraClose) modalCarreraClose.addEventListener('click', closeCarreraModal);
+    if (carreraFormCancel) carreraFormCancel.addEventListener('click', closeCarreraModal);
+
+    if (modalCarrera) {
+        modalCarrera.addEventListener('click', (e) => {
+            if (e.target === modalCarrera) {
+                closeCarreraModal();
+            }
+        });
+    }
+
+    if (carreraForm) {
+        carreraForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const title = document.getElementById('carrera-title').value;
+            const code = document.getElementById('carrera-code').value;
+            const description = document.getElementById('carrera-description').value;
+            const duration = document.getElementById('carrera-duration').value;
+
+            const method = editingCarreraId ? 'PUT' : 'POST';
+            const url = editingCarreraId ? '/api/carreras/' + editingCarreraId : '/api/carreras';
+            
+            try {
+                const res = await fetch(url, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...getAuthHeaders()
+                    },
+                    body: JSON.stringify({
+                        title: title,
+                        code: code,
+                        description: description,
+                        duration: parseInt(duration)
+                    })
+                });
+                
+                if (res.ok) {
+                    alert(editingCarreraId ? 'Carrera actualizada correctamente' : 'Carrera creada correctamente');
+                    closeCarreraModal();
+                    await loadAdminCarreras();
+                } else {
+                    const text = await res.text();
+                    alert('Error: ' + text);
+                }
+            } catch (error) {
+                alert('Error al guardar la carrera: ' + error.message);
+            }
+        });
+    }
+
+    // AUTORIDADES MODAL SETUP
+    const modalAutoridad = document.getElementById('modal-autoridad');
+    const btnNuevaAutoridad = document.getElementById('btn-nueva-autoridad');
+    const modalAutoridadClose = document.getElementById('modal-autoridad-close');
+    const autoridadFormCancel = document.getElementById('autoridad-form-cancel');
+    const autoridadForm = document.getElementById('autoridad-form');
+
+    if (btnNuevaAutoridad) {
+        btnNuevaAutoridad.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (autoridadForm) autoridadForm.reset();
+            document.getElementById('modal-autoridad-titulo').textContent = 'Nueva Autoridad';
+            editingAutoridadId = null;
+            modalAutoridad.classList.add('active');
+        });
+    }
+
+    const closeAutoridadModal = () => {
+        modalAutoridad.classList.remove('active');
+        if (autoridadForm) autoridadForm.reset();
+        editingAutoridadId = null;
+    };
+
+    if (modalAutoridadClose) modalAutoridadClose.addEventListener('click', closeAutoridadModal);
+    if (autoridadFormCancel) autoridadFormCancel.addEventListener('click', closeAutoridadModal);
+
+    if (modalAutoridad) {
+        modalAutoridad.addEventListener('click', (e) => {
+            if (e.target === modalAutoridad) {
+                closeAutoridadModal();
+            }
+        });
+    }
+
+    if (autoridadForm) {
+        autoridadForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const nombre = document.getElementById('autoridad-nombre').value;
+            const cargo = document.getElementById('autoridad-cargo').value;
+            const email = document.getElementById('autoridad-email').value;
+            const telefono = document.getElementById('autoridad-telefono').value;
+
+            const method = editingAutoridadId ? 'PUT' : 'POST';
+            const url = editingAutoridadId ? '/api/autoridades/' + editingAutoridadId : '/api/autoridades';
+            
+            try {
+                const res = await fetch(url, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...getAuthHeaders()
+                    },
+                    body: JSON.stringify({
+                        nombre,
+                        cargo,
+                        email,
+                        telefono
+                    })
+                });
+                
+                if (res.ok) {
+                    alert(editingAutoridadId ? 'Autoridad actualizada correctamente' : 'Autoridad creada correctamente');
+                    closeAutoridadModal();
+                    await loadAdminAutoridades();
+                } else {
+                    const text = await res.text();
+                    alert('Error: ' + text);
+                }
+            } catch (error) {
+                alert('Error al guardar la autoridad: ' + error.message);
+            }
+        });
+    }
+
+    // MENSAJES MODAL SETUP
+    const modalMensaje = document.getElementById('modal-mensaje');
+    const modalMensajeClose = document.getElementById('modal-mensaje-close');
+    const btnEliminarMensaje = document.getElementById('btn-eliminar-mensaje');
+
+    if (modalMensajeClose) {
+        modalMensajeClose.addEventListener('click', (e) => {
+            e.preventDefault();
+            modalMensaje.classList.remove('active');
+        });
+    }
+
+    if (btnEliminarMensaje) {
+        btnEliminarMensaje.addEventListener('click', async (e) => {
+            e.preventDefault();
+            const id = currentMensajeId;
+            if (id) {
+                await deleteMensaje(id);
+            }
+        });
+    }
+
+    if (modalMensaje) {
+        modalMensaje.addEventListener('click', (e) => {
+            if (e.target === modalMensaje) {
+                modalMensaje.classList.remove('active');
+            }
+        });
+    }
+
+    // DOCUMENTOS MODAL SETUP
+    const modalDoc = document.getElementById('modal-documento');
+    const btnNuevoDoc = document.getElementById('btn-nuevo-documento');
+    const modalDocClose = document.getElementById('modal-doc-close');
+    const docFormCancel = document.getElementById('doc-form-cancel');
+    const docForm = document.getElementById('documento-form');
+    const docFileInput = document.getElementById('doc-file');
+    const docFileName = document.getElementById('doc-file-name');
+
+    if (btnNuevoDoc) {
+        btnNuevoDoc.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (docForm) docForm.reset();
+            docFileName.textContent = 'Ningún archivo seleccionado';
+            document.getElementById('modal-doc-titulo').textContent = 'Nuevo Documento';
+            editingDocId = null;
+            modalDoc.classList.add('active');
+        });
+    }
+
+    const closeDocModal = () => {
+        modalDoc.classList.remove('active');
+        if (docForm) docForm.reset();
+        docFileName.textContent = 'Ningún archivo seleccionado';
+        editingDocId = null;
+    };
+
+    if (modalDocClose) modalDocClose.addEventListener('click', closeDocModal);
+    if (docFormCancel) docFormCancel.addEventListener('click', closeDocModal);
+
+    if (modalDoc) {
+        modalDoc.addEventListener('click', (e) => {
+            if (e.target === modalDoc) {
+                closeDocModal();
+            }
+        });
+    }
+
+    if (docFileInput) {
+        docFileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                docFileName.textContent = file.name;
+            } else {
+                docFileName.textContent = 'Ningún archivo seleccionado';
+            }
+        });
+    }
+
+    if (docForm) {
+        docForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const title = document.getElementById('doc-title').value;
+            const category = document.getElementById('doc-category').value;
+            const description = document.getElementById('doc-description').value;
+            const fileInput = document.getElementById('doc-file');
+
+            if (!fileInput.files || !fileInput.files[0]) {
+                alert('Por favor selecciona un archivo PDF');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('title', title);
+            formData.append('category', category);
+            formData.append('description', description);
+            formData.append('file', fileInput.files[0]);
+
+            const method = editingDocId ? 'PUT' : 'POST';
+            const url = editingDocId ? '/api/documents/' + editingDocId : '/api/documents';
+            
+            try {
+                const res = await fetch(url, {
+                    method: method,
+                    body: formData,
+                    headers: getAuthHeaders()
+                });
+                
+                if (res.ok) {
+                    alert(editingDocId ? 'Documento actualizado correctamente' : 'Documento creado correctamente');
+                    closeDocModal();
+                    await loadAdminDocumentos();
+                } else {
+                    const text = await res.text();
+                    alert('Error: ' + text);
+                }
+            } catch (error) {
+                alert('Error al guardar el documento: ' + error.message);
+            }
+        });
+    }
+
+    // Configuration section event listeners
+    const configBtn = document.getElementById('btn-guardar-config');
+    const configMessage = document.getElementById('config-message');
+    const preinscripcionEnabled = document.getElementById('config-preinscripcion-enabled');
+    const preinscripcionUrl = document.getElementById('config-preinscripcion-url');
+
+    // Load configuration on page load
+    await loadConfigPage();
+
+    if (configBtn) {
+        configBtn.addEventListener('click', async () => {
+            const enabled = preinscripcionEnabled.checked;
+            const url = preinscripcionUrl.value;
+
+            try {
+                const res = await fetch('/api/config/preinscripcion', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...getAuthHeaders()
+                    },
+                    body: JSON.stringify({ enabled, url })
+                });
+
+                if (res.ok) {
+                    configMessage.style.display = 'block';
+                    configMessage.className = 'message success-message';
+                    configMessage.textContent = '✅ Configuración guardada correctamente';
+                    setTimeout(() => {
+                        configMessage.style.display = 'none';
+                    }, 3000);
+                } else {
+                    configMessage.style.display = 'block';
+                    configMessage.className = 'message error-message';
+                    configMessage.textContent = '❌ Error al guardar la configuración';
+                }
+            } catch (error) {
+                configMessage.style.display = 'block';
+                configMessage.className = 'message error-message';
+                configMessage.textContent = '❌ Error: ' + error.message;
+            }
+        });
+    }
+
+    // Load initial admin data
+    await loadAdminNews();
+});

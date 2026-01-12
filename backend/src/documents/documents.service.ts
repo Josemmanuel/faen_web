@@ -13,24 +13,33 @@ export interface DocumentItem {
 }
 
 // Calcular la ruta correcta del archivo documents.json
-const DOCUMENTS_FILE = path.resolve(__dirname, '../../../data/documents.json');
-
 @Injectable()
 export class DocumentsService {
+  private getFilePath(): string {
+    const projectRoot = (globalThis as any)['projectRoot'] || path.resolve(__dirname, '../..');
+    return path.resolve(projectRoot, 'data/documents.json');
+  }
+
   private ensureFile() {
-    if (!fs.existsSync(DOCUMENTS_FILE)) {
-      fs.writeFileSync(DOCUMENTS_FILE, JSON.stringify([]));
+    const filePath = this.getFilePath();
+    if (!fs.existsSync(filePath)) {
+      const dir = path.dirname(filePath);
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
+      fs.writeFileSync(filePath, JSON.stringify([]));
     }
   }
 
   findAll(): DocumentItem[] {
     try {
       this.ensureFile();
-      const raw = fs.readFileSync(DOCUMENTS_FILE, 'utf8');
+      const filePath = this.getFilePath();
+      const raw = fs.readFileSync(filePath, 'utf8');
       return JSON.parse(raw);
     } catch (err) {
       console.error('Error en findAll():', err.message);
-      console.error('DOCUMENTS_FILE path:', DOCUMENTS_FILE);
+      console.error('DOCUMENTS_FILE path:', this.getFilePath());
       throw err;
     }
   }
@@ -55,7 +64,7 @@ export class DocumentsService {
       uploadedAt: new Date().toISOString(),
     };
     documents.push(item);
-    fs.writeFileSync(DOCUMENTS_FILE, JSON.stringify(documents, null, 2));
+    fs.writeFileSync(this.getFilePath(), JSON.stringify(documents, null, 2));
     return item;
   }
 
@@ -64,7 +73,7 @@ export class DocumentsService {
     const idx = documents.findIndex(d => d.id === id);
     if (idx === -1) return null;
     documents[idx] = { ...documents[idx], ...data };
-    fs.writeFileSync(DOCUMENTS_FILE, JSON.stringify(documents, null, 2));
+    fs.writeFileSync(this.getFilePath(), JSON.stringify(documents, null, 2));
     return documents[idx];
   }
 
@@ -76,7 +85,7 @@ export class DocumentsService {
 
     // Eliminar archivo PDF local si existe
     if (item.filePath) {
-      const uploadsDir = path.resolve(__dirname, '../../../public');
+      const uploadsDir = path.resolve((globalThis as any)['projectRoot'] || __dirname, 'public');
       const fileOnDisk = path.join(uploadsDir, item.filePath);
 
       try {
@@ -90,7 +99,7 @@ export class DocumentsService {
     }
 
     documents.splice(idx, 1);
-    fs.writeFileSync(DOCUMENTS_FILE, JSON.stringify(documents, null, 2));
+    fs.writeFileSync(this.getFilePath(), JSON.stringify(documents, null, 2));
     return true;
   }
 }

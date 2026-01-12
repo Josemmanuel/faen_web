@@ -43,22 +43,31 @@ exports.NewsService = void 0;
 const common_1 = require("@nestjs/common");
 const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
-const NEWS_FILE = path.join(process.cwd(), 'data', 'news.json');
 let NewsService = class NewsService {
+    getFilePath() {
+        const projectRoot = globalThis['projectRoot'] || path.resolve(__dirname, '../..');
+        return path.resolve(projectRoot, 'data/news.json');
+    }
     ensureFile() {
-        if (!fs.existsSync(NEWS_FILE)) {
-            fs.writeFileSync(NEWS_FILE, JSON.stringify([]));
+        const filePath = this.getFilePath();
+        if (!fs.existsSync(filePath)) {
+            const dir = path.dirname(filePath);
+            if (!fs.existsSync(dir)) {
+                fs.mkdirSync(dir, { recursive: true });
+            }
+            fs.writeFileSync(filePath, JSON.stringify([]));
         }
     }
     findAll() {
         try {
             this.ensureFile();
-            const raw = fs.readFileSync(NEWS_FILE, 'utf8');
+            const filePath = this.getFilePath();
+            const raw = fs.readFileSync(filePath, 'utf8');
             return JSON.parse(raw);
         }
         catch (err) {
             console.error('Error en findAll():', err.message);
-            console.error('NEWS_FILE path:', NEWS_FILE);
+            console.error('NEWS_FILE path:', this.getFilePath());
             throw err;
         }
     }
@@ -75,7 +84,7 @@ let NewsService = class NewsService {
             image: data.image || null,
         };
         news.push(item);
-        fs.writeFileSync(NEWS_FILE, JSON.stringify(news, null, 2));
+        fs.writeFileSync(this.getFilePath(), JSON.stringify(news, null, 2));
         return item;
     }
     update(id, data) {
@@ -84,7 +93,7 @@ let NewsService = class NewsService {
         if (idx === -1)
             return null;
         news[idx] = { ...news[idx], ...data };
-        fs.writeFileSync(NEWS_FILE, JSON.stringify(news, null, 2));
+        fs.writeFileSync(this.getFilePath(), JSON.stringify(news, null, 2));
         return news[idx];
     }
     remove(id) {
@@ -94,15 +103,20 @@ let NewsService = class NewsService {
             return false;
         const item = news[idx];
         if (item.image && item.image.startsWith('/uploads/')) {
-            const fileOnDisk = path.join(process.cwd(), 'public', item.image);
+            const uploadsDir = path.resolve(globalThis['projectRoot'] || __dirname, 'public');
+            const fileOnDisk = path.join(uploadsDir, item.image);
             try {
-                if (fs.existsSync(fileOnDisk))
+                if (fs.existsSync(fileOnDisk)) {
                     fs.unlinkSync(fileOnDisk);
+                    console.log(`Imagen eliminada: ${fileOnDisk}`);
+                }
             }
-            catch (err) { }
+            catch (err) {
+                console.error(`Error al eliminar imagen ${fileOnDisk}:`, err.message);
+            }
         }
         news.splice(idx, 1);
-        fs.writeFileSync(NEWS_FILE, JSON.stringify(news, null, 2));
+        fs.writeFileSync(this.getFilePath(), JSON.stringify(news, null, 2));
         return true;
     }
 };

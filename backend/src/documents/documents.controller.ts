@@ -2,24 +2,30 @@ import { Body, Controller, Delete, Get, Param, Post, Put, UploadedFile, UseGuard
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { Express } from 'express';
-import { join } from 'path';
+import { join, resolve } from 'path';
 import { existsSync, mkdirSync } from 'fs';
 import { DocumentsService } from './documents.service';
 import { CreateDocumentDto } from './dto/create-document.dto';
 import { UpdateDocumentDto } from './dto/update-document.dto';
 import { BasicAuthGuard } from '../auth/basic-auth.guard';
 
-const uploadsDir = join(__dirname, '..', '..', '..', 'public', 'uploads');
-
-// Asegurar que la carpeta uploads existe
-if (!existsSync(uploadsDir)) {
-  mkdirSync(uploadsDir, { recursive: true });
+function getUploadsDir() {
+  // Use resolve to properly navigate from __dirname to the project root
+  // __dirname is /backend/src/documents when running with ts-node-dev
+  // Going up 3 levels: src/documents -> src -> backend -> /home/josemanuel/Documentos/faen_web
+  const uploadsPath = resolve(__dirname, '../../../..', 'public', 'uploads');
+  console.log('📁 getUploadsDir() resolved to:', uploadsPath);
+  if (!existsSync(uploadsPath)) {
+    console.log('📁 Creating uploads directory:', uploadsPath);
+    mkdirSync(uploadsPath, { recursive: true });
+  }
+  return uploadsPath;
 }
 
 const multerConfig = {
   storage: diskStorage({
     destination: (req, file, cb) => {
-      cb(null, uploadsDir);
+      cb(null, getUploadsDir());
     },
     filename: (req, file, cb) => {
       const uniqueName = Date.now() + '-' + file.originalname;

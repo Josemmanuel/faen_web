@@ -261,13 +261,24 @@
 <body>
     <header>
         <h1>Guía de Ayuda</h1>
-        <nav>
+        <button class="menu-toggle" id="menu-toggle">☰</button>
+        <nav id="navbar-menu">
             <ul>
-                <li><a href="index.html">Inicio</a></li>
-                <li><a href="help-guide.html">Guía de Ayuda</a></li>
-                <li><a href="admin.html">Admin</a></li>
+                <li><a href="index.html"><span class="nav-icon">🏠</span> Inicio</a></li>
+                <li><a href="help-guide.html"><span class="nav-icon">❓</span> Guía</a></li>
+                <li><a href="#"><span class="nav-icon">🎓</span> Carreras</a></li>
+                <li><a href="autoridades.html"><span class="nav-icon">👔</span> Autoridades</a></li>
+                <li><a href="contacto.html"><span class="nav-icon">📞</span> Contacto</a></li>
+                <li class="dropdown">
+                    <a href="#" class="dropdown-toggle"><span class="nav-icon">👨‍🎓</span> Estudiantes <span class="dropdown-arrow">▼</span></a>
+                    <ul class="dropdown-menu">
+                        <li><a href="#"><span class="nav-icon">📋</span> Preinscripción</a></li>
+                        <li><a href="https://guarani.unf.edu.ar/autogestion/" target="_blank"><span class="nav-icon">🔐</span> Autogestión</a></li>
+                    </ul>
+                </li>
             </ul>
         </nav>
+    </header>
     </header>
 
     <div class="breadcrumb">

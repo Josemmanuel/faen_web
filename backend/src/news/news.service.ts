@@ -10,28 +10,33 @@ export interface NewsItem {
   image?: string | null;
 }
 
-// Calcular la ruta correcta del archivo news.json
-// Cuando se ejecuta con ts-node dev, __dirname es 'backend/src/news'
-// Cuando se ejecuta compilado, __dirname es 'backend/dist/news'
-// En ambos casos, ir 3 niveles arriba nos lleva a faen_web/
-const NEWS_FILE = path.resolve(__dirname, '../../../data/news.json');
-
 @Injectable()
 export class NewsService {
+  private getFilePath(): string {
+    const projectRoot = (globalThis as any)['projectRoot'] || path.resolve(__dirname, '../..');
+    return path.resolve(projectRoot, 'data/news.json');
+  }
+
   private ensureFile() {
-    if (!fs.existsSync(NEWS_FILE)) {
-      fs.writeFileSync(NEWS_FILE, JSON.stringify([]));
+    const filePath = this.getFilePath();
+    if (!fs.existsSync(filePath)) {
+      const dir = path.dirname(filePath);
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
+      fs.writeFileSync(filePath, JSON.stringify([]));
     }
   }
 
   findAll(): NewsItem[] {
     try {
       this.ensureFile();
-      const raw = fs.readFileSync(NEWS_FILE, 'utf8');
+      const filePath = this.getFilePath();
+      const raw = fs.readFileSync(filePath, 'utf8');
       return JSON.parse(raw);
     } catch (err) {
       console.error('Error en findAll():', err.message);
-      console.error('NEWS_FILE path:', NEWS_FILE);
+      console.error('NEWS_FILE path:', this.getFilePath());
       throw err;
     }
   }
@@ -50,7 +55,7 @@ export class NewsService {
       image: data.image || null,
     };
     news.push(item);
-    fs.writeFileSync(NEWS_FILE, JSON.stringify(news, null, 2));
+    fs.writeFileSync(this.getFilePath(), JSON.stringify(news, null, 2));
     return item;
   }
 
@@ -59,7 +64,7 @@ export class NewsService {
     const idx = news.findIndex(n => n.id === id);
     if (idx === -1) return null;
     news[idx] = { ...news[idx], ...data };
-    fs.writeFileSync(NEWS_FILE, JSON.stringify(news, null, 2));
+    fs.writeFileSync(this.getFilePath(), JSON.stringify(news, null, 2));
     return news[idx];
   }
 
@@ -72,7 +77,7 @@ export class NewsService {
     // Eliminar imagen local si existe
     if (item.image && item.image.startsWith('/uploads/')) {
       // Calcular ruta correcta: ../../../public/uploads/...
-      const uploadsDir = path.resolve(__dirname, '../../../public');
+      const uploadsDir = path.resolve((globalThis as any)['projectRoot'] || __dirname, 'public');
       const fileOnDisk = path.join(uploadsDir, item.image);
       
       try {
@@ -86,7 +91,7 @@ export class NewsService {
     }
     
     news.splice(idx, 1);
-    fs.writeFileSync(NEWS_FILE, JSON.stringify(news, null, 2));
+    fs.writeFileSync(this.getFilePath(), JSON.stringify(news, null, 2));
     return true;
   }
 }

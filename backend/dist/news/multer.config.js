@@ -4,14 +4,19 @@ exports.multerOptions = void 0;
 const multer_1 = require("multer");
 const path_1 = require("path");
 const fs_1 = require("fs");
-const uploadsDir = (0, path_1.join)(__dirname, '..', '..', '..', 'public', 'uploads');
-if (!(0, fs_1.existsSync)(uploadsDir)) {
-    (0, fs_1.mkdirSync)(uploadsDir, { recursive: true });
+function getUploadsDir() {
+    const uploadsPath = (0, path_1.resolve)(__dirname, '../../../..', 'public', 'uploads');
+    console.log('📁 multer getUploadsDir() resolved to:', uploadsPath);
+    if (!(0, fs_1.existsSync)(uploadsPath)) {
+        console.log('📁 Creating uploads directory:', uploadsPath);
+        (0, fs_1.mkdirSync)(uploadsPath, { recursive: true });
+    }
+    return uploadsPath;
 }
 exports.multerOptions = {
     storage: (0, multer_1.diskStorage)({
         destination: (req, file, cb) => {
-            cb(null, uploadsDir);
+            cb(null, getUploadsDir());
         },
         filename: (req, file, cb) => {
             const uniqueName = Date.now() + '-' + file.originalname;

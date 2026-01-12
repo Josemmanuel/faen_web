@@ -11,11 +11,14 @@ export interface Foto {
 
 @Injectable()
 export class GaleriaService {
-  private galeriaFilePath = path.join(process.cwd(), 'data', 'galeria.json');
+  private getFilePath(): string {
+    const projectRoot = (globalThis as any)['projectRoot'] || path.resolve(__dirname, '../..');
+    return path.resolve(projectRoot, 'data/galeria.json');
+  }
 
   async getAllFotos(): Promise<Foto[]> {
     try {
-      const data = await fs.readFile(this.galeriaFilePath, 'utf-8');
+      const data = await fs.readFile(this.getFilePath(), 'utf-8');
       return JSON.parse(data);
     } catch (error) {
       return [];
@@ -26,7 +29,7 @@ export class GaleriaService {
     const fotos = await this.getAllFotos();
     fotos.push(foto);
     await fs.writeFile(
-      this.galeriaFilePath,
+      this.getFilePath(),
       JSON.stringify(fotos, null, 2),
       'utf-8'
     );
@@ -38,7 +41,8 @@ export class GaleriaService {
     const foto = fotos.find((f) => f.id === id);
 
     if (foto) {
-      const filePath = path.join(process.cwd(), 'public', foto.ruta);
+      const projectRoot = (globalThis as any)['projectRoot'] || path.resolve(__dirname, '../..');
+      const filePath = path.join(projectRoot, 'public', foto.ruta);
       try {
         await fs.unlink(filePath);
       } catch (error) {
@@ -48,7 +52,7 @@ export class GaleriaService {
 
     fotos = fotos.filter((f) => f.id !== id);
     await fs.writeFile(
-      this.galeriaFilePath,
+      this.getFilePath(),
       JSON.stringify(fotos, null, 2),
       'utf-8'
     );
