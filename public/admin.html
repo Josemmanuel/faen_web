@@ -8,6 +8,7 @@
 </head>
 <body>
     <header>
+        <img src="images/logofaen.png" alt="Logo FAEN" class="logo">
         <div class="header-content">
             <h1>📰 Panel de Administración</h1>
             <p class="subtitle">Gestiona tu sitio web</p>
@@ -348,6 +349,15 @@
                                 <label for="autoridad-telefono">Teléfono</label>
                                 <input type="tel" id="autoridad-telefono" placeholder="Ej: +54 9 123 456 7890">
                             </div>
+                            <div class="form-group">
+                                <label for="autoridad-foto">Foto</label>
+                                <div class="file-input-wrapper">
+                                    <input type="file" id="autoridad-foto" accept="image/*" class="file-input">
+                                    <label for="autoridad-foto" class="file-label">Seleccionar foto</label>
+                                    <span id="autoridad-foto-name" class="file-name">Ningún archivo seleccionado</span>
+                                </div>
+                                <div id="autoridad-foto-preview" class="image-preview"></div>
+                            </div>
                             <div class="form-actions">
                                 <button type="submit" class="btn btn-success">Guardar Autoridad</button>
                                 <button type="button" id="autoridad-form-cancel" class="btn btn-secondary">Cancelar</button>
@@ -361,6 +371,7 @@
                     <table class="autoridades-table">
                         <thead>
                             <tr>
+                                <th>Foto</th>
                                 <th>Nombre</th>
                                 <th>Cargo</th>
                                 <th>Email</th>
@@ -370,7 +381,7 @@
                         </thead>
                         <tbody id="admin-autoridades-list">
                             <tr>
-                                <td colspan="5" class="text-center">Cargando autoridades...</td>
+                                <td colspan="6" class="text-center">Cargando autoridades...</td>
                             </tr>
                         </tbody>
                     </table>

@@ -663,7 +663,7 @@ async function loadAdminAutoridades() {
         adminAutoridadesList.innerHTML = '';
         
         if (!data || data.length === 0) {
-            adminAutoridadesList.innerHTML = '<tr><td colspan="5" class="text-center">No hay autoridades aún</td></tr>';
+            adminAutoridadesList.innerHTML = '<tr><td colspan="6" class="text-center">No hay autoridades aún</td></tr>';
             return;
         }
 
@@ -674,8 +674,12 @@ async function loadAdminAutoridades() {
             const cargo = escapeHtml(autoridad.cargo);
             const email = escapeHtml(autoridad.email || '-');
             const telefono = escapeHtml(autoridad.telefono || '-');
+            const fotoHtml = autoridad.foto ? 
+                '<img src="' + autoridad.foto + '" alt="' + nombre + '" class="tabla-imagen">' : 
+                '<div style="width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; background: #e1e4e8; border-radius: 50%;">👤</div>';
 
-            row.innerHTML = '<td><div class="tabla-titulo">' + nombre + '</div></td>' +
+            row.innerHTML = '<td>' + fotoHtml + '</td>' +
+                '<td><div class="tabla-titulo">' + nombre + '</div></td>' +
                 '<td>' + cargo + '</td>' +
                 '<td>' + email + '</td>' +
                 '<td>' + telefono + '</td>' +
@@ -705,7 +709,7 @@ async function loadAdminAutoridades() {
 
     } catch (err) {
         console.error('Error cargando autoridades:', err);
-        adminAutoridadesList.innerHTML = '<tr><td colspan="5" class="text-center">Error cargando autoridades</td></tr>';
+        adminAutoridadesList.innerHTML = '<tr><td colspan="6" class="text-center">Error cargando autoridades</td></tr>';
     }
 }
 
@@ -724,6 +728,17 @@ async function editAutoridad(id) {
         document.getElementById('autoridad-cargo').value = autoridad.cargo;
         document.getElementById('autoridad-email').value = autoridad.email || '';
         document.getElementById('autoridad-telefono').value = autoridad.telefono || '';
+        
+        // Mostrar foto previa si existe
+        const fotoPreview = document.getElementById('autoridad-foto-preview');
+        if (fotoPreview) {
+            if (autoridad.foto) {
+                fotoPreview.innerHTML = '<img src="' + autoridad.foto + '" alt="Foto actual" style="max-width: 150px; max-height: 150px; border-radius: 50%; object-fit: cover;">';
+            } else {
+                fotoPreview.innerHTML = '';
+            }
+        }
+        
         document.getElementById('modal-autoridad-titulo').textContent = 'Editar Autoridad';
 
         editingAutoridadId = id;
@@ -1467,11 +1482,36 @@ document.addEventListener('DOMContentLoaded', async () => {
     const closeAutoridadModal = () => {
         modalAutoridad.classList.remove('active');
         if (autoridadForm) autoridadForm.reset();
+        const fotoPreview = document.getElementById('autoridad-foto-preview');
+        if (fotoPreview) fotoPreview.innerHTML = '';
         editingAutoridadId = null;
     };
 
     if (modalAutoridadClose) modalAutoridadClose.addEventListener('click', closeAutoridadModal);
     if (autoridadFormCancel) autoridadFormCancel.addEventListener('click', closeAutoridadModal);
+
+    // Manejador para vista previa de foto de autoridad
+    const autoridadFotoInput = document.getElementById('autoridad-foto');
+    if (autoridadFotoInput) {
+        autoridadFotoInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            const fotoPreview = document.getElementById('autoridad-foto-preview');
+            const fotoName = document.getElementById('autoridad-foto-name');
+            
+            if (file) {
+                fotoName.textContent = file.name;
+                
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    fotoPreview.innerHTML = '<img src="' + event.target.result + '" alt="Preview" style="max-width: 150px; max-height: 150px; border-radius: 50%; object-fit: cover;">';
+                };
+                reader.readAsDataURL(file);
+            } else {
+                fotoName.textContent = 'Ningún archivo seleccionado';
+                fotoPreview.innerHTML = '';
+            }
+        });
+    }
 
     if (modalAutoridad) {
         modalAutoridad.addEventListener('click', (e) => {
@@ -1485,41 +1525,103 @@ document.addEventListener('DOMContentLoaded', async () => {
         autoridadForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            const nombre = document.getElementById('autoridad-nombre').value;
-            const cargo = document.getElementById('autoridad-cargo').value;
-            const email = document.getElementById('autoridad-email').value;
-            const telefono = document.getElementById('autoridad-telefono').value;
+            const nombre = document.getElementById('autoridad-nombre').value.trim();
+            const cargo = document.getElementById('autoridad-cargo').value.trim();
+            const email = document.getElementById('autoridad-email').value.trim();
+            const telefono = document.getElementById('autoridad-telefono').value.trim();
+            const fotoInput = document.getElementById('autoridad-foto');
 
-            const method = editingAutoridadId ? 'PUT' : 'POST';
-            const url = editingAutoridadId ? '/api/autoridades/' + editingAutoridadId : '/api/autoridades';
-            
-            try {
-                const res = await fetch(url, {
-                    method: method,
-                    headers: {
-                        'Content-Type': 'application/json',
-                        ...getAuthHeaders()
-                    },
-                    body: JSON.stringify({
-                        nombre,
-                        cargo,
-                        email,
-                        telefono
-                    })
-                });
+            // Validación
+            if (!nombre) {
+                alert('Por favor ingresa el nombre');
+                return;
+            }
+            if (!cargo) {
+                alert('Por favor ingresa el cargo');
+                return;
+            }
+
+            // Procesar foto si existe
+            let foto = null;
+            if (fotoInput && fotoInput.files && fotoInput.files[0]) {
+                const file = fotoInput.files[0];
                 
-                if (res.ok) {
-                    alert(editingAutoridadId ? 'Autoridad actualizada correctamente' : 'Autoridad creada correctamente');
-                    closeAutoridadModal();
-                    await loadAdminAutoridades();
-                } else {
-                    const text = await res.text();
-                    alert('Error: ' + text);
+                // Limitar tamaño de imagen
+                if (file.size > 500000) {
+                    alert('La imagen es muy grande. Por favor usa una imagen menor a 500KB');
+                    return;
                 }
-            } catch (error) {
-                alert('Error al guardar la autoridad: ' + error.message);
+                
+                // Usar Promise para esperar a que se lea la foto
+                foto = await new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    
+                    reader.onload = (event) => {
+                        resolve(event.target.result);
+                    };
+                    
+                    reader.onerror = () => {
+                        reject(new Error('Error al leer la foto'));
+                    };
+                    
+                    reader.readAsDataURL(file);
+                }).catch(err => {
+                    alert(err.message);
+                    return null;
+                });
+            }
+            
+            if (foto !== null || !fotoInput || !fotoInput.files || !fotoInput.files[0]) {
+                await guardarAutoridad(nombre, cargo, email, telefono, foto);
             }
         });
+    }
+
+    async function guardarAutoridad(nombre, cargo, email, telefono, foto) {
+        const method = editingAutoridadId ? 'PUT' : 'POST';
+        const url = editingAutoridadId ? '/api/autoridades/' + editingAutoridadId : '/api/autoridades';
+        
+        const payload = {
+            nombre: nombre.trim(),
+            cargo: cargo.trim()
+        };
+        
+        // Solo agregar campos opcionales si tienen valor
+        if (email && email.trim()) payload.email = email.trim();
+        if (telefono && telefono.trim()) payload.telefono = telefono.trim();
+        if (foto) {
+            console.log('Foto tamaño:', foto.length, 'bytes');
+            payload.foto = foto;
+        }
+        
+        console.log('Enviando payload completo:', {
+            ...payload,
+            foto: payload.foto ? `foto base64 (${payload.foto.length} bytes)` : null
+        });
+        
+        try {
+            const res = await fetch(url, {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...getAuthHeaders()
+                },
+                body: JSON.stringify(payload)
+            });
+            
+            if (res.ok) {
+                alert(editingAutoridadId ? 'Autoridad actualizada correctamente' : 'Autoridad creada correctamente');
+                closeAutoridadModal();
+                await loadAdminAutoridades();
+            } else {
+                const text = await res.text();
+                console.error('Error response:', text);
+                alert('Error: ' + text);
+            }
+        } catch (error) {
+            console.error('Error al guardar:', error);
+            alert('Error al guardar la autoridad: ' + error.message);
+        }
     }
 
     // MENSAJES MODAL SETUP

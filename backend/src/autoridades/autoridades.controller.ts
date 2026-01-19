@@ -21,7 +21,15 @@ export class AutoridadesController {
   @UseGuards(BasicAuthGuard)
   @Post()
   create(@Body() dto: CreateAutoridadDto) {
-    return this.autoridadesService.create(dto);
+    console.log('Recibiendo POST /api/autoridades con datos:', dto);
+    try {
+      const result = this.autoridadesService.create(dto);
+      console.log('Resultado del create:', result);
+      return result;
+    } catch (err) {
+      console.error('Error en controller create:', err);
+      throw err;
+    }
   }
 
   @UseGuards(BasicAuthGuard)

@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="css/styles.css">
     <style>
         .autoridades-container {
-            max-width: 1000px;
+            max-width: 1200px;
             margin: 20px auto;
             padding: 20px;
             background-color: white;
@@ -15,43 +15,88 @@
         }
 
         .autoridades-container h2 {
-            border-bottom: 3px solid #007bff;
+            border-bottom: 3px solid rgba(25, 55, 109, 0.8);
             padding-bottom: 10px;
-            margin-bottom: 20px;
+            margin-bottom: 30px;
             color: #333;
+            text-align: center;
+            font-size: 2rem;
         }
 
-        .autoridad-item {
-            background: #f9f9f9;
+        .autoridades-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 25px;
+            margin-bottom: 20px;
+        }
+
+        .autoridad-card {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            text-align: center;
+        }
+
+        .autoridad-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 8px 24px rgba(25, 55, 109, 0.2);
+        }
+
+        .autoridad-foto {
+            width: 100%;
+            height: 250px;
+            background: linear-gradient(135deg, rgba(25, 55, 109, 0.1), rgba(25, 55, 109, 0.05));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .autoridad-foto img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .autoridad-foto-placeholder {
+            font-size: 4rem;
+        }
+
+        .autoridad-info {
             padding: 20px;
-            margin-bottom: 20px;
-            border-left: 4px solid #007bff;
-            border-radius: 4px;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
 
-        .autoridad-item:hover {
-            transform: translateX(5px);
-            box-shadow: 0 4px 15px rgba(0,123,255,0.2);
-        }
-
-        .autoridad-item h3 {
-            margin: 0 0 10px 0;
+        .autoridad-info h3 {
+            margin: 0 0 8px 0;
             color: #333;
-            font-size: 1.2rem;
+            font-size: 1.3rem;
         }
 
-        .autoridad-item p {
-            margin: 8px 0;
-            color: #666;
-            font-size: 0.95rem;
-        }
-
-        .autoridad-label {
+        .autoridad-cargo {
+            color: rgba(25, 55, 109, 0.8);
             font-weight: bold;
-            color: #007bff;
-            display: inline-block;
-            width: 100px;
+            font-size: 0.95rem;
+            margin-bottom: 15px;
+        }
+
+        .autoridad-contacto {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            font-size: 0.9rem;
+        }
+
+        .autoridad-contacto a {
+            color: rgba(25, 55, 109, 0.9);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .autoridad-contacto a:hover {
+            color: rgba(25, 55, 109, 1);
+            text-decoration: underline;
         }
 
         .loading {
@@ -67,10 +112,26 @@
             border-radius: 4px;
             margin-bottom: 20px;
         }
+
+        @media (max-width: 768px) {
+            .autoridades-grid {
+                grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+                gap: 15px;
+            }
+
+            .autoridad-foto {
+                height: 200px;
+            }
+
+            .autoridades-container h2 {
+                font-size: 1.5rem;
+            }
+        }
     </style>
 </head>
 <body>
     <header>
+        <img src="images/logofaen.png" alt="Logo FAEN" class="logo">
         <h1>Autoridades</h1>
         <button class="menu-toggle" id="menu-toggle">☰</button>
         <nav id="navbar-menu">
@@ -95,8 +156,8 @@
         <section class="main-content">
             <div class="autoridades-container">
                 <h2>Autoridades de la Facultad</h2>
-                <div id="autoridades-list" class="autoridades-list">
-                    <div class="loading">Cargando autoridades...</div>
+                <div id="autoridades-list" class="autoridades-grid">
+                    <div class="loading" style="grid-column: 1 / -1;">Cargando autoridades...</div>
                 </div>
             </div>
         </section>
@@ -123,19 +184,26 @@
                 const listContainer = document.getElementById('autoridades-list');
                 
                 if (autoridades.length === 0) {
-                    listContainer.innerHTML = '<p style="text-align: center; color: #666;">No hay autoridades registradas.</p>';
+                    listContainer.innerHTML = '<p style="text-align: center; color: #666; grid-column: 1 / -1;">No hay autoridades registradas.</p>';
                 } else {
                     listContainer.innerHTML = autoridades.map(auth => `
-                        <div class="autoridad-item">
-                            <h3>${auth.nombre}</h3>
-                            <p><span class="autoridad-label">Cargo:</span> ${auth.cargo}</p>
-                            ${auth.email ? `<p><span class="autoridad-label">Email:</span> <a href="mailto:${auth.email}">${auth.email}</a></p>` : ''}
-                            ${auth.telefono ? `<p><span class="autoridad-label">Teléfono:</span> <a href="tel:${auth.telefono}">${auth.telefono}</a></p>` : ''}
+                        <div class="autoridad-card">
+                            <div class="autoridad-foto">
+                                ${auth.foto ? `<img src="${auth.foto}" alt="${auth.nombre}">` : '<div class="autoridad-foto-placeholder">👤</div>'}
+                            </div>
+                            <div class="autoridad-info">
+                                <h3>${auth.nombre}</h3>
+                                <div class="autoridad-cargo">${auth.cargo}</div>
+                                <div class="autoridad-contacto">
+                                    ${auth.email ? `<a href="mailto:${auth.email}">📧 ${auth.email}</a>` : ''}
+                                    ${auth.telefono ? `<a href="tel:${auth.telefono}">📱 ${auth.telefono}</a>` : ''}
+                                </div>
+                            </div>
                         </div>
                     `).join('');
                 }
             } catch (error) {
-                document.getElementById('autoridades-list').innerHTML = `<div class="error">Error al cargar las autoridades: ${error.message}</div>`;
+                document.getElementById('autoridades-list').innerHTML = `<div class="error" style="grid-column: 1 / -1;">Error al cargar las autoridades: ${error.message}</div>`;
             }
 
             // Toggle menu

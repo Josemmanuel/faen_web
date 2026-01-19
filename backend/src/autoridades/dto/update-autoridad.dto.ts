@@ -3,4 +3,5 @@ export class UpdateAutoridadDto {
   cargo?: string;
   email?: string;
   telefono?: string;
+  foto?: string;
 }

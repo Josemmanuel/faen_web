@@ -8,6 +8,7 @@ export interface AutoridadItem {
   cargo: string;
   email?: string;
   telefono?: string;
+  foto?: string;
 }
 
 
@@ -45,17 +46,44 @@ export class AutoridadesService {
   }
 
   create(data: Partial<AutoridadItem>): AutoridadItem {
-    const autoridades = this.findAll();
-    const item: AutoridadItem = {
-      id: Date.now().toString(),
-      nombre: data.nombre || '',
-      cargo: data.cargo || '',
-      email: data.email || '',
-      telefono: data.telefono || '',
-    };
-    autoridades.push(item);
-    fs.writeFileSync(this.getFilePath(), JSON.stringify(autoridades, null, 2));
-    return item;
+    try {
+      console.log('=== CREATE AUTORIDAD ===');
+      console.log('Datos recibidos:', data);
+      console.log('data.nombre:', data.nombre, 'tipo:', typeof data.nombre, 'length:', data.nombre?.length);
+      console.log('data.cargo:', data.cargo, 'tipo:', typeof data.cargo, 'length:', data.cargo?.length);
+      
+      if (!data.nombre || data.nombre.trim() === '') {
+        throw new Error('Nombre es requerido y no puede estar vacío');
+      }
+      if (!data.cargo || data.cargo.trim() === '') {
+        throw new Error('Cargo es requerido y no puede estar vacío');
+      }
+      
+      const autoridades = this.findAll();
+      const item: AutoridadItem = {
+        id: Date.now().toString(),
+        nombre: data.nombre.trim(),
+        cargo: data.cargo.trim(),
+      };
+      
+      // Solo agregar campos opcionales si existen
+      if (data.email && data.email.trim()) item.email = data.email.trim();
+      if (data.telefono && data.telefono.trim()) item.telefono = data.telefono.trim();
+      if (data.foto && data.foto.trim()) item.foto = data.foto;
+      
+      console.log('Item a guardar:', item);
+      const filePath = this.getFilePath();
+      console.log('Guardando en:', filePath);
+      
+      autoridades.push(item);
+      fs.writeFileSync(filePath, JSON.stringify(autoridades, null, 2));
+      console.log('Autoridad guardada exitosamente');
+      console.log('Total autoridades:', autoridades.length);
+      return item;
+    } catch (err) {
+      console.error('Error en create():', err);
+      throw err;
+    }
   }
 
   update(id: string, data: Partial<AutoridadItem>): AutoridadItem | null {

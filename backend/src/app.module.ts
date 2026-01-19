@@ -14,7 +14,7 @@ import { ConfigModule } from './config/config.module';
     // Servir los archivos estáticos (tu carpeta `public` un nivel arriba de `backend/`)
     ServeStaticModule.forRoot({
       rootPath: resolve((globalThis as any)['projectRoot'] || resolve(__dirname, '../..'), 'public'),
-      exclude: ['/api*'],
+      exclude: ['/api(.*)'],
       serveRoot: '/',
     }),
     ConfigModule,
