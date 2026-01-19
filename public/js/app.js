@@ -336,6 +336,37 @@ async function loadPreinscripcionConfig() {
     }
 }
 
+async function loadStudentLinksInDropdown() {
+    try {
+        const res = await fetch('/api/config/student-links');
+        if (!res.ok) {
+            console.log('No student links found');
+            return;
+        }
+        
+        const links = await res.json();
+        const dropdownMenu = document.querySelector('.dropdown-menu');
+        
+        if (!dropdownMenu) return;
+        
+        // Eliminar enlaces dinámicos previos (mantener solo Autogestión que es hardcodeado)
+        const existingCustomLinks = dropdownMenu.querySelectorAll('[data-custom-link="true"]');
+        existingCustomLinks.forEach(link => link.remove());
+        
+        // Agregar nuevos enlaces del servidor
+        if (links && links.length > 0) {
+            links.forEach(link => {
+                const li = document.createElement('li');
+                li.setAttribute('data-custom-link', 'true');
+                li.innerHTML = `<a href="${escapeHtml(link.url)}" target="_blank" rel="noopener"><span class="nav-icon">${escapeHtml(link.icon)}</span> ${escapeHtml(link.title)}</a>`;
+                dropdownMenu.appendChild(li);
+            });
+        }
+    } catch (error) {
+        console.log('Error loading student links:', error);
+    }
+}
+
 async function loadConfigPage() {
     const preinscripcionEnabled = document.getElementById('config-preinscripcion-enabled');
     const preinscripcionUrl = document.getElementById('config-preinscripcion-url');
@@ -1073,8 +1104,9 @@ document.addEventListener('DOMContentLoaded', () => {
         loadCarousel();
     }
 
-    // Load preinscripcion config on index page
+    // Load preinscripcion config and student links on all pages
     loadPreinscripcionConfig();
+    loadStudentLinksInDropdown();
 
     // Load news detail on news.html
     const newsDetail = document.getElementById('news-detail');
@@ -1425,27 +1457,69 @@ document.addEventListener('DOMContentLoaded', async () => {
         carreraForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            const title = document.getElementById('carrera-title').value;
-            const code = document.getElementById('carrera-code').value;
-            const description = document.getElementById('carrera-description').value;
+            const title = document.getElementById('carrera-title').value.trim();
+            const code = document.getElementById('carrera-code').value.trim();
+            const description = document.getElementById('carrera-description').value.trim();
+            const fullDescription = document.getElementById('carrera-full-description').value.trim();
             const duration = document.getElementById('carrera-duration').value;
+            const fotoInput = document.getElementById('carrera-foto');
+            const documentoInput = document.getElementById('carrera-documento');
+
+            // Validación básica en cliente
+            if (!title || !code || !description) {
+                alert('Por favor completa todos los campos requeridos');
+                return;
+            }
+
+            if (!documentoInput.files || documentoInput.files.length === 0) {
+                alert('Por favor selecciona un plan de carrera (PDF)');
+                return;
+            }
 
             const method = editingCarreraId ? 'PUT' : 'POST';
             const url = editingCarreraId ? '/api/carreras/' + editingCarreraId : '/api/carreras';
             
             try {
+                // Leer documento
+                const documentoFile = documentoInput.files[0];
+                const documentoBase64 = await new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = () => resolve(reader.result);
+                    reader.onerror = reject;
+                    reader.readAsDataURL(documentoFile);
+                });
+
+                // Leer foto si existe
+                let fotoBase64 = null;
+                if (fotoInput.files && fotoInput.files.length > 0) {
+                    const fotoFile = fotoInput.files[0];
+                    fotoBase64 = await new Promise((resolve, reject) => {
+                        const reader = new FileReader();
+                        reader.onload = () => resolve(reader.result);
+                        reader.onerror = reject;
+                        reader.readAsDataURL(fotoFile);
+                    });
+                }
+
+                const payload = {
+                    title: title,
+                    code: code,
+                    description: description,
+                    fullDescription: fullDescription || description,
+                    duration: parseInt(duration),
+                    documento: documentoBase64,
+                    foto: fotoBase64
+                };
+                
+                console.log('Enviando carrera con documento y foto');
+                
                 const res = await fetch(url, {
                     method: method,
                     headers: {
                         'Content-Type': 'application/json',
                         ...getAuthHeaders()
                     },
-                    body: JSON.stringify({
-                        title: title,
-                        code: code,
-                        description: description,
-                        duration: parseInt(duration)
-                    })
+                    body: JSON.stringify(payload)
                 });
                 
                 if (res.ok) {
@@ -1454,11 +1528,41 @@ document.addEventListener('DOMContentLoaded', async () => {
                     await loadAdminCarreras();
                 } else {
                     const text = await res.text();
+                    console.error('Error response:', text);
                     alert('Error: ' + text);
                 }
             } catch (error) {
+                console.error('Error al guardar:', error);
                 alert('Error al guardar la carrera: ' + error.message);
             }
+        });
+    }
+
+    // Manejar cambios en el input de foto de carrera
+    const carreraFotoInput = document.getElementById('carrera-foto');
+    if (carreraFotoInput) {
+        carreraFotoInput.addEventListener('change', (e) => {
+            const fileName = e.target.files && e.target.files.length > 0 ? e.target.files[0].name : 'Ningún archivo seleccionado';
+            document.getElementById('carrera-foto-name').textContent = fileName;
+            
+            if (e.target.files && e.target.files.length > 0) {
+                const reader = new FileReader();
+                reader.onload = (evt) => {
+                    document.getElementById('carrera-foto-preview').innerHTML = '<img src="' + evt.target.result + '" style="max-width: 200px; max-height: 200px; border-radius: 8px;">';
+                };
+                reader.readAsDataURL(e.target.files[0]);
+            } else {
+                document.getElementById('carrera-foto-preview').innerHTML = '';
+            }
+        });
+    }
+
+    // Manejar cambios en el input de documento de carrera
+    const carreraDocumentoInput = document.getElementById('carrera-documento');
+    if (carreraDocumentoInput) {
+        carreraDocumentoInput.addEventListener('change', (e) => {
+            const fileName = e.target.files && e.target.files.length > 0 ? e.target.files[0].name : 'Ningún archivo seleccionado';
+            document.getElementById('carrera-documento-name').textContent = fileName;
         });
     }
 
@@ -1790,6 +1894,138 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         });
     }
+
+    // STUDENT LINKS MANAGEMENT
+    loadStudentLinks();
+
+    const btnAgregarLink = document.getElementById('btn-agregar-link');
+    if (btnAgregarLink) {
+        btnAgregarLink.addEventListener('click', async () => {
+            const title = document.getElementById('link-title').value.trim();
+            const url = document.getElementById('link-url').value.trim();
+            const icon = document.getElementById('link-icon').value.trim() || '🔗';
+
+            if (!title || !url) {
+                alert('Por favor completa el nombre y la URL del enlace');
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/config/student-links', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...getAuthHeaders()
+                    },
+                    body: JSON.stringify({ title, url, icon })
+                });
+
+                if (res.ok) {
+                    document.getElementById('link-title').value = '';
+                    document.getElementById('link-url').value = '';
+                    document.getElementById('link-icon').value = '';
+                    
+                    const msgDiv = document.getElementById('link-add-message');
+                    msgDiv.style.display = 'block';
+                    msgDiv.className = 'message success-message';
+                    msgDiv.textContent = '✅ Enlace agregado correctamente';
+                    setTimeout(() => msgDiv.style.display = 'none', 3000);
+                    
+                    await loadStudentLinks();
+                    await loadStudentLinksInDropdown();
+                } else {
+                    alert('Error al agregar el enlace');
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        });
+    }
+
+    async function loadStudentLinks() {
+        try {
+            const res = await fetch('/api/config/student-links');
+            const links = await res.json();
+            const linksList = document.getElementById('student-links-list');
+
+            linksList.innerHTML = '';
+
+            if (!links || links.length === 0) {
+                linksList.innerHTML = '<p style="color: #999;">No hay enlaces configurados</p>';
+                return;
+            }
+
+            links.forEach(link => {
+                const item = document.createElement('div');
+                item.className = 'student-link-item';
+                item.innerHTML = `
+                    <span class="student-link-icon">${escapeHtml(link.icon)}</span>
+                    <div class="student-link-content">
+                        <h5>${escapeHtml(link.title)}</h5>
+                        <a href="${escapeHtml(link.url)}" target="_blank" rel="noopener">${escapeHtml(link.url)}</a>
+                    </div>
+                    <div class="student-link-actions">
+                        <button class="btn btn-edit" onclick="editStudentLink('${link.id}', '${escapeHtml(link.title)}', '${escapeHtml(link.url)}', '${escapeHtml(link.icon)}')">✏️ Editar</button>
+                        <button class="btn btn-danger" onclick="deleteStudentLink('${link.id}')">🗑️ Eliminar</button>
+                    </div>
+                `;
+                linksList.appendChild(item);
+            });
+        } catch (error) {
+            console.error('Error cargando enlaces:', error);
+        }
+    }
+
+    window.editStudentLink = async function(id, title, url, icon) {
+        const newTitle = prompt('Nombre del enlace:', decodeURIComponent(title));
+        if (!newTitle) return;
+
+        const newUrl = prompt('URL:', decodeURIComponent(url));
+        if (!newUrl) return;
+
+        const newIcon = prompt('Emoji/Icono:', decodeURIComponent(icon)) || '🔗';
+
+        try {
+            const res = await fetch(`/api/config/student-links/${id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...getAuthHeaders()
+                },
+                body: JSON.stringify({ title: newTitle, url: newUrl, icon: newIcon })
+            });
+
+            if (res.ok) {
+                alert('Enlace actualizado correctamente');
+                await loadStudentLinks();
+            } else {
+                alert('Error al actualizar el enlace');
+            }
+        } catch (error) {
+            alert('Error: ' + error.message);
+        }
+    };
+
+    window.deleteStudentLink = async function(id) {
+        if (!confirm('¿Estás seguro de que deseas eliminar este enlace?')) return;
+
+        try {
+            const res = await fetch(`/api/config/student-links/${id}`, {
+                method: 'DELETE',
+                headers: getAuthHeaders()
+            });
+
+            if (res.ok) {
+                alert('Enlace eliminado correctamente');
+                await loadStudentLinks();
+                await loadStudentLinksInDropdown();
+            } else {
+                alert('Error al eliminar el enlace');
+            }
+        } catch (error) {
+            alert('Error: ' + error.message);
+        }
+    };
 
     // Load initial admin data
     await loadAdminNews();

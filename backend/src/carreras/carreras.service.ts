@@ -7,7 +7,10 @@ export interface CarreraItem {
   title: string;
   code: string;
   description: string;
+  fullDescription?: string;
   duration: number;
+  foto?: string;
+  documento?: string;
 }
 
 // Calcular la ruta correcta del archivo carreras.json
@@ -47,16 +50,43 @@ export class CarrerasService {
   }
 
   create(data: Partial<CarreraItem>): CarreraItem {
+    console.log('=== CREATE CARRERA ===');
+    console.log('Datos recibidos:', data);
+    
     const carreras = this.findAll();
+    
+    // Validación y sanitización
+    const title = (data.title || '').toString().trim();
+    const code = (data.code || '').toString().trim();
+    const description = (data.description || '').toString().trim();
+    const fullDescription = (data.fullDescription || '').toString().trim();
+    
+    if (!title) {
+      throw new Error('El nombre de la carrera no puede estar vacío');
+    }
+    if (!code) {
+      throw new Error('El código no puede estar vacío');
+    }
+    if (!description) {
+      throw new Error('La descripción no puede estar vacía');
+    }
+    
     const item: CarreraItem = {
       id: Date.now().toString(),
-      title: data.title || 'Sin título',
-      code: data.code || '',
-      description: data.description || '',
-      duration: data.duration || 1,
+      title: title,
+      code: code,
+      description: description,
+      fullDescription: fullDescription || description,
+      duration: parseInt(data.duration?.toString() || '1', 10),
+      foto: data.foto || undefined,
+      documento: data.documento || undefined,
     };
+    
+    console.log('Item a guardar:', item);
     carreras.push(item);
     fs.writeFileSync(this.getFilePath(), JSON.stringify(carreras, null, 2));
+    console.log('Carrera guardada exitosamente');
+    console.log('Total carreras:', carreras.length);
     return item;
   }
 

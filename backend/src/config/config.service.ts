@@ -2,11 +2,19 @@ import { Injectable } from '@nestjs/common';
 import * as fs from 'fs';
 import * as path from 'path';
 
+export interface StudentLink {
+  id: string;
+  title: string;
+  url: string;
+  icon: string;
+}
+
 export interface ConfigData {
   preinscripcion: {
     enabled: boolean;
     url: string;
   };
+  studentLinks: StudentLink[];
 }
 
 @Injectable()
@@ -17,6 +25,14 @@ export class ConfigService {
       enabled: false,
       url: 'https://guarani.unf.edu.ar/preinscripcion/unaf/?__o=',
     },
+    studentLinks: [
+      {
+        id: '1',
+        title: 'Autogestión',
+        url: 'https://guarani.unf.edu.ar/autogestion/',
+        icon: '🔐'
+      }
+    ],
   };
 
   constructor() {
@@ -60,5 +76,42 @@ export class ConfigService {
     };
     fs.writeFileSync(this.configFile, JSON.stringify(config, null, 2));
     return config.preinscripcion;
+  }
+
+  getStudentLinks(): StudentLink[] {
+    const config = this.getConfig();
+    return config.studentLinks || [];
+  }
+
+  addStudentLink(link: Omit<StudentLink, 'id'>): StudentLink {
+    const config = this.getConfig();
+    const newLink: StudentLink = {
+      ...link,
+      id: Date.now().toString(),
+    };
+    if (!config.studentLinks) {
+      config.studentLinks = [];
+    }
+    config.studentLinks.push(newLink);
+    fs.writeFileSync(this.configFile, JSON.stringify(config, null, 2));
+    return newLink;
+  }
+
+  updateStudentLink(id: string, link: Partial<StudentLink>): StudentLink | null {
+    const config = this.getConfig();
+    const index = config.studentLinks?.findIndex(l => l.id === id) || -1;
+    if (index === -1) return null;
+    config.studentLinks![index] = { ...config.studentLinks![index], ...link };
+    fs.writeFileSync(this.configFile, JSON.stringify(config, null, 2));
+    return config.studentLinks![index];
+  }
+
+  removeStudentLink(id: string): boolean {
+    const config = this.getConfig();
+    const index = config.studentLinks?.findIndex(l => l.id === id) || -1;
+    if (index === -1) return false;
+    config.studentLinks!.splice(index, 1);
+    fs.writeFileSync(this.configFile, JSON.stringify(config, null, 2));
+    return true;
   }
 }

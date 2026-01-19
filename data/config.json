@@ -2,5 +2,13 @@
   "preinscripcion": {
     "enabled": true,
     "url": "https://guarani.unf.edu.ar/preinscripcion/unaf/?__o="
-  }
+  },
+  "studentLinks": [
+    {
+      "title": "Aula Virtual",
+      "url": "https://faen.ead2.unf.edu.ar/",
+      "icon": "🔗",
+      "id": "1768826024163"
+    }
+  ]
 }

@@ -202,13 +202,37 @@
                             </div>
 
                             <div class="form-group">
-                                <label for="carrera-description">Descripción *</label>
-                                <textarea id="carrera-description" placeholder="Descripción de la carrera" required rows="6"></textarea>
+                                <label for="carrera-description">Descripción Corta *</label>
+                                <textarea id="carrera-description" placeholder="Descripción breve que se mostrará en la tarjeta" required rows="3"></textarea>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="carrera-full-description">Descripción Completa</label>
+                                <textarea id="carrera-full-description" placeholder="Descripción detallada que se mostrará al hacer clic" rows="6"></textarea>
                             </div>
 
                             <div class="form-group">
                                 <label for="carrera-duration">Duración (años) *</label>
                                 <input type="number" id="carrera-duration" placeholder="Ej: 4" min="1" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="carrera-foto">Foto de la Carrera (opcional)</label>
+                                <div class="file-input-wrapper">
+                                    <input type="file" id="carrera-foto" accept="image/*" class="file-input">
+                                    <label for="carrera-foto" class="file-label">Seleccionar foto</label>
+                                    <span id="carrera-foto-name" class="file-name">Ningún archivo seleccionado</span>
+                                </div>
+                                <div id="carrera-foto-preview" class="image-preview"></div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="carrera-documento">Plan de Carrera (PDF) *</label>
+                                <div class="file-input-wrapper">
+                                    <input type="file" id="carrera-documento" accept=".pdf" class="file-input" required>
+                                    <label for="carrera-documento" class="file-label">Seleccionar PDF</label>
+                                    <span id="carrera-documento-name" class="file-name">Ningún archivo seleccionado</span>
+                                </div>
                             </div>
 
                             <div class="form-actions">
@@ -462,6 +486,39 @@
                     </div>
 
                     <div id="config-message" class="message" style="display: none; margin-top: 15px;"></div>
+                </div>
+
+                <!-- Enlaces de Estudiantes -->
+                <div class="config-card">
+                    <h3>👨‍🎓 Enlaces para Estudiantes</h3>
+                    <p class="config-description">Administra los enlaces que aparecen en la sección de Estudiantes (Preinscripción, Aula Virtual, Formularios de Eventos, etc.)</p>
+                    
+                    <div style="margin-bottom: 20px;">
+                        <h4>Agregar nuevo enlace</h4>
+                        <div class="form-group">
+                            <label for="link-title">Nombre del enlace *</label>
+                            <input type="text" id="link-title" placeholder="Ej: Aula Virtual, Formulario de Inscripción" class="form-input">
+                        </div>
+                        <div class="form-group">
+                            <label for="link-url">URL *</label>
+                            <input type="url" id="link-url" placeholder="https://ejemplo.com" class="form-input">
+                        </div>
+                        <div class="form-group">
+                            <label for="link-icon">Emoji/Icono</label>
+                            <input type="text" id="link-icon" placeholder="📚, 🎓, 📝, etc." maxlength="2" class="form-input" style="max-width: 100px;">
+                        </div>
+                        <div class="form-actions">
+                            <button id="btn-agregar-link" class="btn btn-primary">➕ Agregar enlace</button>
+                        </div>
+                        <div id="link-add-message" class="message" style="display: none; margin-top: 10px;"></div>
+                    </div>
+
+                    <div style="border-top: 1px solid #ddd; padding-top: 20px;">
+                        <h4>Enlaces existentes</h4>
+                        <div id="student-links-list" style="display: grid; gap: 10px;">
+                            <p style="color: #999;">Cargando enlaces...</p>
+                        </div>
+                    </div>
                 </div>
             </section>
         </div>

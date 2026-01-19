@@ -12,7 +12,14 @@ globalThis['projectRoot'] = projectRoot;
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+  app.useGlobalPipes(new ValidationPipe({ 
+    whitelist: false, 
+    forbidNonWhitelisted: false,
+    transform: true,
+    transformOptions: {
+      enableImplicitConversion: true
+    }
+  }));
   app.enableCors();
   
   // Aumentar límite de tamaño JSON para soportar fotos en base64
