@@ -9,6 +9,7 @@ export interface CarreraItem {
   description: string;
   fullDescription?: string;
   duration: number;
+  category?: string;
   foto?: string;
   documento?: string;
 }
@@ -78,6 +79,7 @@ export class CarrerasService {
       description: description,
       fullDescription: fullDescription || description,
       duration: parseInt(data.duration?.toString() || '1', 10),
+      category: data.category || 'grado',
       foto: data.foto || undefined,
       documento: data.documento || undefined,
     };

@@ -29,6 +29,12 @@ let CarrerasController = class CarrerasController {
         return this.carrerasService.findOne(id);
     }
     create(dto) {
+        console.log('=== POST /api/carreras ===');
+        console.log('DTO recibido:', dto);
+        console.log('DTO.title:', dto.title, 'tipo:', typeof dto.title);
+        console.log('DTO.code:', dto.code, 'tipo:', typeof dto.code);
+        console.log('DTO.description:', dto.description, 'tipo:', typeof dto.description);
+        console.log('DTO.duration:', dto.duration, 'tipo:', typeof dto.duration);
         return this.carrerasService.create(dto);
     }
     update(id, dto) {

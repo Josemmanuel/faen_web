@@ -48,4 +48,36 @@ export class ConfigController {
   removeStudentLink(@Param('id') id: string) {
     return this.configService.removeStudentLink(id);
   }
+
+  @Get('claustros')
+  getClaustros() {
+    return this.configService.getClaustros();
+  }
+
+  @Get('claustros/:id')
+  getClaustroById(@Param('id') id: string) {
+    return this.configService.getClaustroById(id);
+  }
+
+  @UseGuards(BasicAuthGuard)
+  @Post('claustros/:id/links')
+  addLinkToClaustro(@Param('id') claustroId: string, @Body() data: { title: string; url: string; icon: string }) {
+    return this.configService.addLinkToClaustro(claustroId, data);
+  }
+
+  @UseGuards(BasicAuthGuard)
+  @Put('claustros/:id/links/:linkId')
+  updateClaustroLink(
+    @Param('id') claustroId: string,
+    @Param('linkId') linkId: string,
+    @Body() data: Partial<{ title: string; url: string; icon: string }>
+  ) {
+    return this.configService.updateClaustroLink(claustroId, linkId, data);
+  }
+
+  @UseGuards(BasicAuthGuard)
+  @Delete('claustros/:id/links/:linkId')
+  removeLinkFromClaustro(@Param('id') claustroId: string, @Param('linkId') linkId: string) {
+    return this.configService.removeLinkFromClaustro(claustroId, linkId);
+  }
 }

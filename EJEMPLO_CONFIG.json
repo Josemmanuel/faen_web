@@ -1,0 +1,80 @@
+{
+  "preinscripcion": {
+    "enabled": true,
+    "url": "https://guarani.unf.edu.ar/preinscripcion/unaf/?__o="
+  },
+  "studentLinks": [
+    {
+      "title": "Aula Virtual",
+      "url": "https://faen.ead2.unf.edu.ar/",
+      "icon": "🔗",
+      "id": "1768826024163"
+    }
+  ],
+  "claustros": [
+    {
+      "id": "estudiantes",
+      "name": "Estudiantes",
+      "icon": "👨‍🎓",
+      "links": [
+        {
+          "id": "1704067200000",
+          "title": "Portal de Estudiantes",
+          "url": "https://estudiantes.unf.edu.ar",
+          "icon": "🎓"
+        },
+        {
+          "id": "1704067300000",
+          "title": "Aula Virtual",
+          "url": "https://faen.ead2.unf.edu.ar/",
+          "icon": "💻"
+        }
+      ]
+    },
+    {
+      "id": "graduados",
+      "name": "Graduados",
+      "icon": "🎓",
+      "links": [
+        {
+          "id": "1704067400000",
+          "title": "Red de Egresados",
+          "url": "https://egresados.unf.edu.ar",
+          "icon": "🤝"
+        }
+      ]
+    },
+    {
+      "id": "docentes",
+      "name": "Docentes",
+      "icon": "👨‍🏫",
+      "links": [
+        {
+          "id": "1704067500000",
+          "title": "Portal Docente",
+          "url": "https://docentes.unf.edu.ar",
+          "icon": "📚"
+        },
+        {
+          "id": "1704067600000",
+          "title": "Gestión de Calificaciones",
+          "url": "https://calificaciones.unf.edu.ar",
+          "icon": "📊"
+        }
+      ]
+    },
+    {
+      "id": "no-docentes",
+      "name": "No Docentes",
+      "icon": "👨‍💼",
+      "links": [
+        {
+          "id": "1704067700000",
+          "title": "Portal Administrativo",
+          "url": "https://admin.unf.edu.ar",
+          "icon": "⚙️"
+        }
+      ]
+    }
+  ]
+}

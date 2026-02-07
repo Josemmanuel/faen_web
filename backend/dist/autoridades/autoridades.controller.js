@@ -29,7 +29,16 @@ let AutoridadesController = class AutoridadesController {
         return this.autoridadesService.findOne(id);
     }
     create(dto) {
-        return this.autoridadesService.create(dto);
+        console.log('Recibiendo POST /api/autoridades con datos:', dto);
+        try {
+            const result = this.autoridadesService.create(dto);
+            console.log('Resultado del create:', result);
+            return result;
+        }
+        catch (err) {
+            console.error('Error en controller create:', err);
+            throw err;
+        }
     }
     update(id, dto) {
         const updated = this.autoridadesService.update(id, dto);

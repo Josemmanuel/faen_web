@@ -9,12 +9,27 @@ export interface StudentLink {
   icon: string;
 }
 
+export interface ClaustroLink {
+  id: string;
+  title: string;
+  url: string;
+  icon: string;
+}
+
+export interface Claustro {
+  id: string;
+  name: string;
+  icon: string;
+  links: ClaustroLink[];
+}
+
 export interface ConfigData {
   preinscripcion: {
     enabled: boolean;
     url: string;
   };
   studentLinks: StudentLink[];
+  claustros?: Claustro[];
 }
 
 @Injectable()
@@ -33,6 +48,32 @@ export class ConfigService {
         icon: '🔐'
       }
     ],
+    claustros: [
+      {
+        id: 'estudiantes',
+        name: 'Estudiantes',
+        icon: '👨‍🎓',
+        links: []
+      },
+      {
+        id: 'graduados',
+        name: 'Graduados',
+        icon: '🎓',
+        links: []
+      },
+      {
+        id: 'docentes',
+        name: 'Docentes',
+        icon: '👨‍🏫',
+        links: []
+      },
+      {
+        id: 'no-docentes',
+        name: 'No Docentes',
+        icon: '👨‍💼',
+        links: []
+      }
+    ]
   };
 
   constructor() {
@@ -111,6 +152,56 @@ export class ConfigService {
     const index = config.studentLinks?.findIndex(l => l.id === id) || -1;
     if (index === -1) return false;
     config.studentLinks!.splice(index, 1);
+    fs.writeFileSync(this.configFile, JSON.stringify(config, null, 2));
+    return true;
+  }
+
+  getClaustros(): Claustro[] {
+    const config = this.getConfig();
+    return config.claustros || [];
+  }
+
+  getClaustroById(id: string): Claustro | null {
+    const config = this.getConfig();
+    return config.claustros?.find(c => c.id === id) || null;
+  }
+
+  addLinkToClaustro(claustroId: string, link: Omit<ClaustroLink, 'id'>): ClaustroLink | null {
+    const config = this.getConfig();
+    const claustro = config.claustros?.find(c => c.id === claustroId);
+    if (!claustro) return null;
+
+    const newLink: ClaustroLink = {
+      ...link,
+      id: Date.now().toString(),
+    };
+    claustro.links.push(newLink);
+    fs.writeFileSync(this.configFile, JSON.stringify(config, null, 2));
+    return newLink;
+  }
+
+  updateClaustroLink(claustroId: string, linkId: string, link: Partial<ClaustroLink>): ClaustroLink | null {
+    const config = this.getConfig();
+    const claustro = config.claustros?.find(c => c.id === claustroId);
+    if (!claustro) return null;
+
+    const linkIndex = claustro.links.findIndex(l => l.id === linkId);
+    if (linkIndex === -1) return null;
+
+    claustro.links[linkIndex] = { ...claustro.links[linkIndex], ...link };
+    fs.writeFileSync(this.configFile, JSON.stringify(config, null, 2));
+    return claustro.links[linkIndex];
+  }
+
+  removeLinkFromClaustro(claustroId: string, linkId: string): boolean {
+    const config = this.getConfig();
+    const claustro = config.claustros?.find(c => c.id === claustroId);
+    if (!claustro) return false;
+
+    const linkIndex = claustro.links.findIndex(l => l.id === linkId);
+    if (linkIndex === -1) return false;
+
+    claustro.links.splice(linkIndex, 1);
     fs.writeFileSync(this.configFile, JSON.stringify(config, null, 2));
     return true;
   }

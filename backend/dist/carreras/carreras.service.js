@@ -75,16 +75,38 @@ let CarrerasService = class CarrerasService {
         return this.findAll().find(c => c.id === id);
     }
     create(data) {
+        var _a;
+        console.log('=== CREATE CARRERA ===');
+        console.log('Datos recibidos:', data);
         const carreras = this.findAll();
+        const title = (data.title || '').toString().trim();
+        const code = (data.code || '').toString().trim();
+        const description = (data.description || '').toString().trim();
+        const fullDescription = (data.fullDescription || '').toString().trim();
+        if (!title) {
+            throw new Error('El nombre de la carrera no puede estar vacío');
+        }
+        if (!code) {
+            throw new Error('El código no puede estar vacío');
+        }
+        if (!description) {
+            throw new Error('La descripción no puede estar vacía');
+        }
         const item = {
             id: Date.now().toString(),
-            title: data.title || 'Sin título',
-            code: data.code || '',
-            description: data.description || '',
-            duration: data.duration || 1,
+            title: title,
+            code: code,
+            description: description,
+            fullDescription: fullDescription || description,
+            duration: parseInt(((_a = data.duration) === null || _a === void 0 ? void 0 : _a.toString()) || '1', 10),
+            foto: data.foto || undefined,
+            documento: data.documento || undefined,
         };
+        console.log('Item a guardar:', item);
         carreras.push(item);
         fs.writeFileSync(this.getFilePath(), JSON.stringify(carreras, null, 2));
+        console.log('Carrera guardada exitosamente');
+        console.log('Total carreras:', carreras.length);
         return item;
     }
     update(id, data) {

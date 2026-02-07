@@ -44,8 +44,17 @@ console.log('projectRoot configurado en:', projectRoot);
 globalThis['projectRoot'] = projectRoot;
 async function bootstrap() {
     const app = await core_1.NestFactory.create(app_module_1.AppModule);
-    app.useGlobalPipes(new common_1.ValidationPipe({ whitelist: true, transform: true }));
+    app.useGlobalPipes(new common_1.ValidationPipe({
+        whitelist: false,
+        forbidNonWhitelisted: false,
+        transform: true,
+        transformOptions: {
+            enableImplicitConversion: true
+        }
+    }));
     app.enableCors();
+    app.use(require('express').json({ limit: '50mb' }));
+    app.use(require('express').urlencoded({ limit: '50mb', extended: true }));
     await app.listen(3000);
     console.log('Nest backend listening on http://localhost:3000');
 }

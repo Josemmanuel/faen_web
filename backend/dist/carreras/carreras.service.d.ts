@@ -3,7 +3,10 @@ export interface CarreraItem {
     title: string;
     code: string;
     description: string;
+    fullDescription?: string;
     duration: number;
+    foto?: string;
+    documento?: string;
 }
 export declare class CarrerasService {
     private getFilePath;

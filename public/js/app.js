@@ -336,34 +336,110 @@ async function loadPreinscripcionConfig() {
     }
 }
 
-async function loadStudentLinksInDropdown() {
+async function loadClaustrosInDropdown() {
     try {
-        const res = await fetch('/api/config/student-links');
+        const res = await fetch('/api/config/claustros');
         if (!res.ok) {
-            console.log('No student links found');
+            console.log('No claustros found');
             return;
         }
         
-        const links = await res.json();
-        const dropdownMenu = document.querySelector('.dropdown-menu');
+        const claustros = await res.json();
+        const claustroDropdown = document.getElementById('claustro-dropdown');
         
-        if (!dropdownMenu) return;
+        if (!claustroDropdown) {
+            console.log('claustro-dropdown element not found');
+            return;
+        }
         
-        // Eliminar enlaces dinámicos previos (mantener solo Autogestión que es hardcodeado)
-        const existingCustomLinks = dropdownMenu.querySelectorAll('[data-custom-link="true"]');
-        existingCustomLinks.forEach(link => link.remove());
+        // Obtener configuración de preinscripción
+        let preinscripcionConfig = {};
+        try {
+            const configRes = await fetch('/api/config/preinscripcion');
+            if (configRes.ok) {
+                preinscripcionConfig = await configRes.json();
+            }
+        } catch (e) {
+            console.log('Error loading preinscripcion config');
+        }
         
-        // Agregar nuevos enlaces del servidor
-        if (links && links.length > 0) {
-            links.forEach(link => {
+        // Limpiar el dropdown
+        claustroDropdown.innerHTML = '';
+        
+        console.log('Claustros cargados:', claustros);
+        
+        // Agregar cada claustro como un submenú
+        if (claustros && claustros.length > 0) {
+            claustros.forEach((claustro, index) => {
                 const li = document.createElement('li');
-                li.setAttribute('data-custom-link', 'true');
-                li.innerHTML = `<a href="${escapeHtml(link.url)}" target="_blank" rel="noopener"><span class="nav-icon">${escapeHtml(link.icon)}</span> ${escapeHtml(link.title)}</a>`;
-                dropdownMenu.appendChild(li);
+                li.className = 'dropdown-claustro';
+                li.dataset.claustroId = claustro.id;
+                
+                // Filtrar enlaces según configuración
+                let visibleLinks = claustro.links ? claustro.links.filter(link => {
+                    if (link.conditional === 'preinscripcion') {
+                        return preinscripcionConfig.enabled === true;
+                    }
+                    return true;
+                }) : [];
+                
+                console.log(`Claustro ${claustro.name}: ${visibleLinks.length} enlaces visibles`);
+                
+                if (visibleLinks && visibleLinks.length > 0) {
+                    // Si tiene enlaces, crear un submenú
+                    const toggle = document.createElement('a');
+                    toggle.href = '#';
+                    toggle.className = 'dropdown-claustro-toggle';
+                    toggle.innerHTML = `${escapeHtml(claustro.icon)} ${escapeHtml(claustro.name)} <span class="dropdown-arrow">▶</span>`;
+                    
+                    toggle.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        console.log('Click en claustro:', claustro.name);
+                        li.classList.toggle('active');
+                    });
+                    
+                    li.appendChild(toggle);
+                    
+                    const subMenu = document.createElement('ul');
+                    subMenu.className = 'dropdown-submenu';
+                    
+                    visibleLinks.forEach(link => {
+                        const subLi = document.createElement('li');
+                        const linkElement = document.createElement('a');
+                        linkElement.href = escapeHtml(link.url);
+                        linkElement.target = '_blank';
+                        linkElement.rel = 'noopener';
+                        linkElement.innerHTML = `<span class="nav-icon">${escapeHtml(link.icon)}</span> ${escapeHtml(link.title)}`;
+                        
+                        linkElement.addEventListener('click', function() {
+                            setTimeout(() => {
+                                li.classList.remove('active');
+                            }, 100);
+                        });
+                        
+                        subLi.appendChild(linkElement);
+                        subMenu.appendChild(subLi);
+                    });
+                    
+                    li.appendChild(subMenu);
+                } else {
+                    // Si no tiene enlaces, solo mostrar el texto deshabilitado
+                    const disabledLink = document.createElement('a');
+                    disabledLink.href = '#';
+                    disabledLink.className = 'disabled';
+                    disabledLink.innerHTML = `${escapeHtml(claustro.icon)} ${escapeHtml(claustro.name)} (sin enlaces)`;
+                    disabledLink.addEventListener('click', function(e) {
+                        e.preventDefault();
+                    });
+                    li.appendChild(disabledLink);
+                }
+                
+                claustroDropdown.appendChild(li);
             });
         }
     } catch (error) {
-        console.log('Error loading student links:', error);
+        console.log('Error loading claustros:', error);
     }
 }
 
@@ -588,7 +664,7 @@ async function loadAdminCarreras() {
         adminCarrerasList.innerHTML = '';
         
         if (!data || data.length === 0) {
-            adminCarrerasList.innerHTML = '<tr><td colspan="5" class="text-center">No hay carreras aún</td></tr>';
+            adminCarrerasList.innerHTML = '<tr><td colspan="6" class="text-center">No hay carreras aún</td></tr>';
             return;
         }
 
@@ -599,9 +675,16 @@ async function loadAdminCarreras() {
             const code = escapeHtml(carrera.code);
             const description = escapeHtml(carrera.description || '');
             const duration = carrera.duration || 1;
+            const categoryMap = {
+                'grado': 'Carrera de Grado',
+                'posgrado': 'Carrera de Posgrado',
+                'cursos': 'Cursos o Charlas'
+            };
+            const category = categoryMap[carrera.category] || carrera.category || 'Carrera de Grado';
 
             row.innerHTML = '<td><div class="tabla-titulo">' + title + '</div></td>' +
                 '<td><code>' + code + '</code></td>' +
+                '<td><span class="categoria-badge">' + escapeHtml(category) + '</span></td>' +
                 '<td><div class="tabla-descripcion">' + description + '</div></td>' +
                 '<td>' + duration + ' años</td>' +
                 '<td><div class="tabla-acciones">' +
@@ -630,7 +713,7 @@ async function loadAdminCarreras() {
 
     } catch (err) {
         console.error('Error cargando carreras:', err);
-        adminCarrerasList.innerHTML = '<tr><td colspan="5" class="text-center">Error cargando carreras</td></tr>';
+        adminCarrerasList.innerHTML = '<tr><td colspan="6" class="text-center">Error cargando carreras</td></tr>';
     }
 }
 
@@ -649,6 +732,7 @@ async function editCarrera(id) {
         document.getElementById('carrera-code').value = carrera.code;
         document.getElementById('carrera-description').value = carrera.description || '';
         document.getElementById('carrera-duration').value = carrera.duration;
+        document.getElementById('carrera-category').value = carrera.category || 'grado';
         document.getElementById('modal-carrera-titulo').textContent = 'Editar Carrera';
 
         editingCarreraId = id;
@@ -1106,7 +1190,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Load preinscripcion config and student links on all pages
     loadPreinscripcionConfig();
-    loadStudentLinksInDropdown();
+    loadClaustrosInDropdown();
 
     // Load news detail on news.html
     const newsDetail = document.getElementById('news-detail');
@@ -1462,11 +1546,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             const description = document.getElementById('carrera-description').value.trim();
             const fullDescription = document.getElementById('carrera-full-description').value.trim();
             const duration = document.getElementById('carrera-duration').value;
+            const category = document.getElementById('carrera-category').value.trim();
             const fotoInput = document.getElementById('carrera-foto');
             const documentoInput = document.getElementById('carrera-documento');
 
             // Validación básica en cliente
-            if (!title || !code || !description) {
+            if (!title || !code || !description || !category) {
                 alert('Por favor completa todos los campos requeridos');
                 return;
             }
@@ -1507,6 +1592,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     description: description,
                     fullDescription: fullDescription || description,
                     duration: parseInt(duration),
+                    category: category,
                     documento: documentoBase64,
                     foto: fotoBase64
                 };
@@ -1882,6 +1968,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                     setTimeout(() => {
                         configMessage.style.display = 'none';
                     }, 3000);
+                    // Recargar dropdown en el navbar cuando cambia preinscripción
+                    await loadClaustrosInDropdown();
                 } else {
                     configMessage.style.display = 'block';
                     configMessage.className = 'message error-message';
@@ -1895,67 +1983,23 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    // STUDENT LINKS MANAGEMENT
-    loadStudentLinks();
-
-    const btnAgregarLink = document.getElementById('btn-agregar-link');
-    if (btnAgregarLink) {
-        btnAgregarLink.addEventListener('click', async () => {
-            const title = document.getElementById('link-title').value.trim();
-            const url = document.getElementById('link-url').value.trim();
-            const icon = document.getElementById('link-icon').value.trim() || '🔗';
-
-            if (!title || !url) {
-                alert('Por favor completa el nombre y la URL del enlace');
-                return;
-            }
-
-            try {
-                const res = await fetch('/api/config/student-links', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        ...getAuthHeaders()
-                    },
-                    body: JSON.stringify({ title, url, icon })
-                });
-
-                if (res.ok) {
-                    document.getElementById('link-title').value = '';
-                    document.getElementById('link-url').value = '';
-                    document.getElementById('link-icon').value = '';
-                    
-                    const msgDiv = document.getElementById('link-add-message');
-                    msgDiv.style.display = 'block';
-                    msgDiv.className = 'message success-message';
-                    msgDiv.textContent = '✅ Enlace agregado correctamente';
-                    setTimeout(() => msgDiv.style.display = 'none', 3000);
-                    
-                    await loadStudentLinks();
-                    await loadStudentLinksInDropdown();
-                } else {
-                    alert('Error al agregar el enlace');
-                }
-            } catch (error) {
-                alert('Error: ' + error.message);
-            }
-        });
-    }
-
-    async function loadStudentLinks() {
+    // CLAUSTRO LINKS MANAGEMENT
+    async function loadClaustroLinks(claustroId) {
         try {
-            const res = await fetch('/api/config/student-links');
-            const links = await res.json();
-            const linksList = document.getElementById('student-links-list');
+            const res = await fetch(`/api/config/claustros/${claustroId}`, {
+                headers: getAuthHeaders()
+            });
+            const claustro = await res.json();
+            const linksList = document.getElementById('claustro-links-list');
 
             linksList.innerHTML = '';
 
-            if (!links || links.length === 0) {
-                linksList.innerHTML = '<p style="color: #999;">No hay enlaces configurados</p>';
+            if (!claustro || !claustro.links || claustro.links.length === 0) {
+                linksList.innerHTML = '<p style="color: #999;">No hay enlaces configurados para este claustro</p>';
                 return;
             }
 
-            links.forEach(link => {
+            claustro.links.forEach(link => {
                 const item = document.createElement('div');
                 item.className = 'student-link-item';
                 item.innerHTML = `
@@ -1965,18 +2009,18 @@ document.addEventListener('DOMContentLoaded', async () => {
                         <a href="${escapeHtml(link.url)}" target="_blank" rel="noopener">${escapeHtml(link.url)}</a>
                     </div>
                     <div class="student-link-actions">
-                        <button class="btn btn-edit" onclick="editStudentLink('${link.id}', '${escapeHtml(link.title)}', '${escapeHtml(link.url)}', '${escapeHtml(link.icon)}')">✏️ Editar</button>
-                        <button class="btn btn-danger" onclick="deleteStudentLink('${link.id}')">🗑️ Eliminar</button>
+                        <button class="btn btn-edit" onclick="editClaustroLink('${claustroId}', '${link.id}', '${escapeHtml(link.title).replace(/'/g, "\\'")}', '${escapeHtml(link.url).replace(/'/g, "\\'")}', '${escapeHtml(link.icon)}')">✏️ Editar</button>
+                        <button class="btn btn-danger" onclick="deleteClaustroLink('${claustroId}', '${link.id}')">🗑️ Eliminar</button>
                     </div>
                 `;
                 linksList.appendChild(item);
             });
         } catch (error) {
-            console.error('Error cargando enlaces:', error);
+            console.error('Error cargando enlaces de claustro:', error);
         }
     }
 
-    window.editStudentLink = async function(id, title, url, icon) {
+    window.editClaustroLink = async function(claustroId, linkId, title, url, icon) {
         const newTitle = prompt('Nombre del enlace:', decodeURIComponent(title));
         if (!newTitle) return;
 
@@ -1986,7 +2030,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const newIcon = prompt('Emoji/Icono:', decodeURIComponent(icon)) || '🔗';
 
         try {
-            const res = await fetch(`/api/config/student-links/${id}`, {
+            const res = await fetch(`/api/config/claustros/${claustroId}/links/${linkId}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -1997,7 +2041,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             if (res.ok) {
                 alert('Enlace actualizado correctamente');
-                await loadStudentLinks();
+                await loadClaustroLinks(claustroId);
+                await loadClaustrosInDropdown();
             } else {
                 alert('Error al actualizar el enlace');
             }
@@ -2006,19 +2051,19 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     };
 
-    window.deleteStudentLink = async function(id) {
+    window.deleteClaustroLink = async function(claustroId, linkId) {
         if (!confirm('¿Estás seguro de que deseas eliminar este enlace?')) return;
 
         try {
-            const res = await fetch(`/api/config/student-links/${id}`, {
+            const res = await fetch(`/api/config/claustros/${claustroId}/links/${linkId}`, {
                 method: 'DELETE',
                 headers: getAuthHeaders()
             });
 
             if (res.ok) {
                 alert('Enlace eliminado correctamente');
-                await loadStudentLinks();
-                await loadStudentLinksInDropdown();
+                await loadClaustroLinks(claustroId);
+                await loadClaustrosInDropdown();
             } else {
                 alert('Error al eliminar el enlace');
             }
@@ -2026,6 +2071,86 @@ document.addEventListener('DOMContentLoaded', async () => {
             alert('Error: ' + error.message);
         }
     };
+
+    // Event listeners para la sección de claustros
+    const claustroSelect = document.getElementById('claustro-select');
+    const claustroFormContainer = document.getElementById('claustro-form-container');
+    const claustroLinksContainer = document.getElementById('claustro-links-container');
+    const btnAgregarClaustroLink = document.getElementById('btn-agregar-claustro-link');
+
+    if (claustroSelect) {
+        claustroSelect.addEventListener('change', async (e) => {
+            const claustroId = e.target.value;
+
+            if (!claustroId) {
+                claustroFormContainer.style.display = 'none';
+                claustroLinksContainer.style.display = 'none';
+                return;
+            }
+
+            // Actualizar nombre del claustro
+            const claustroNombre = claustroSelect.options[claustroSelect.selectedIndex].text;
+            document.getElementById('claustro-nombre').textContent = claustroNombre;
+            document.getElementById('claustro-nombre-display').textContent = claustroNombre;
+
+            claustroFormContainer.style.display = 'block';
+            claustroLinksContainer.style.display = 'block';
+
+            // Limpiar formulario
+            document.getElementById('claustro-link-title').value = '';
+            document.getElementById('claustro-link-url').value = '';
+            document.getElementById('claustro-link-icon').value = '';
+
+            // Cargar enlaces existentes
+            await loadClaustroLinks(claustroId);
+        });
+    }
+
+    if (btnAgregarClaustroLink) {
+        btnAgregarClaustroLink.addEventListener('click', async (e) => {
+            e.preventDefault();
+
+            const claustroId = document.getElementById('claustro-select').value;
+            if (!claustroId) {
+                alert('Por favor selecciona un claustro');
+                return;
+            }
+
+            const title = document.getElementById('claustro-link-title').value.trim();
+            const url = document.getElementById('claustro-link-url').value.trim();
+            const icon = document.getElementById('claustro-link-icon').value.trim() || '🔗';
+
+            if (!title || !url) {
+                alert('Por favor completa todos los campos requeridos');
+                return;
+            }
+
+            try {
+                const res = await fetch(`/api/config/claustros/${claustroId}/links`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...getAuthHeaders()
+                    },
+                    body: JSON.stringify({ title, url, icon })
+                });
+
+                if (res.ok) {
+                    alert('Enlace agregado correctamente');
+                    document.getElementById('claustro-link-title').value = '';
+                    document.getElementById('claustro-link-url').value = '';
+                    document.getElementById('claustro-link-icon').value = '';
+                    
+                    await loadClaustroLinks(claustroId);
+                    await loadClaustrosInDropdown();
+                } else {
+                    alert('Error al agregar el enlace');
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        });
+    }
 
     // Load initial admin data
     await loadAdminNews();

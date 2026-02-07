@@ -73,17 +73,43 @@ let AutoridadesService = class AutoridadesService {
         return this.findAll().find(a => a.id === id);
     }
     create(data) {
-        const autoridades = this.findAll();
-        const item = {
-            id: Date.now().toString(),
-            nombre: data.nombre || '',
-            cargo: data.cargo || '',
-            email: data.email || '',
-            telefono: data.telefono || '',
-        };
-        autoridades.push(item);
-        fs.writeFileSync(this.getFilePath(), JSON.stringify(autoridades, null, 2));
-        return item;
+        var _a, _b;
+        try {
+            console.log('=== CREATE AUTORIDAD ===');
+            console.log('Datos recibidos:', data);
+            console.log('data.nombre:', data.nombre, 'tipo:', typeof data.nombre, 'length:', (_a = data.nombre) === null || _a === void 0 ? void 0 : _a.length);
+            console.log('data.cargo:', data.cargo, 'tipo:', typeof data.cargo, 'length:', (_b = data.cargo) === null || _b === void 0 ? void 0 : _b.length);
+            if (!data.nombre || data.nombre.trim() === '') {
+                throw new Error('Nombre es requerido y no puede estar vacío');
+            }
+            if (!data.cargo || data.cargo.trim() === '') {
+                throw new Error('Cargo es requerido y no puede estar vacío');
+            }
+            const autoridades = this.findAll();
+            const item = {
+                id: Date.now().toString(),
+                nombre: data.nombre.trim(),
+                cargo: data.cargo.trim(),
+            };
+            if (data.email && data.email.trim())
+                item.email = data.email.trim();
+            if (data.telefono && data.telefono.trim())
+                item.telefono = data.telefono.trim();
+            if (data.foto && data.foto.trim())
+                item.foto = data.foto;
+            console.log('Item a guardar:', item);
+            const filePath = this.getFilePath();
+            console.log('Guardando en:', filePath);
+            autoridades.push(item);
+            fs.writeFileSync(filePath, JSON.stringify(autoridades, null, 2));
+            console.log('Autoridad guardada exitosamente');
+            console.log('Total autoridades:', autoridades.length);
+            return item;
+        }
+        catch (err) {
+            console.error('Error en create():', err);
+            throw err;
+        }
     }
     update(id, data) {
         const autoridades = this.findAll();

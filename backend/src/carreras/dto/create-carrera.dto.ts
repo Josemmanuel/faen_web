@@ -29,6 +29,11 @@ export class CreateCarreraDto {
   duration?: number;
 
   @IsOptional()
+  @IsString({ message: 'La categoría debe ser texto' })
+  @Transform(({ value }) => typeof value === 'string' ? value.trim() : value)
+  category?: string;
+
+  @IsOptional()
   @IsString({ message: 'La foto debe ser una cadena base64' })
   foto?: string;
 

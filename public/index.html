@@ -8,7 +8,7 @@
 </head>
 <body>
     <header>
-        <img src="images/logofaen.png" alt="Logo FAEN" class="logo">
+        <img src="images/faenlogo.png" alt="Logo FAEN" class="logo">
         <h1>Noticias</h1>
         <button class="menu-toggle" id="menu-toggle">☰</button>
         <nav id="navbar-menu">
@@ -19,12 +19,9 @@
                 <li><a href="autoridades.html"><span class="nav-icon">👔</span> Autoridades</a></li>
                 <li><a href="contacto.html"><span class="nav-icon">📞</span> Contacto</a></li>
                 <li class="dropdown">
-                    <a href="#" class="dropdown-toggle"><span class="nav-icon">👨‍🎓</span> Estudiantes <span class="dropdown-arrow">▼</span></a>
-                    <ul class="dropdown-menu">
-                        <li id="preinscripcion-item" style="display: none;">
-                            <a id="preinscripcion-link" href="#" target="_blank"><span class="nav-icon">📝</span> Preinscripción</a>
-                        </li>
-                        <li><a href="https://guarani.unf.edu.ar/autogestion/" target="_blank"><span class="nav-icon">🔐</span> Autogestión</a></li>
+                    <a href="#" class="dropdown-toggle"><span class="nav-icon">📚</span> Claustro <span class="dropdown-arrow">▼</span></a>
+                    <ul class="dropdown-menu" id="claustro-dropdown">
+                        <!-- Los claustros se cargarán dinámicamente aquí -->
                     </ul>
                 </li>
             </ul>

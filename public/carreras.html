@@ -122,10 +122,10 @@
 </head>
 <body>
     <header>
-        <img src="images/logofaen.png" alt="Logo FAEN" class="logo">
+        <img src="images/faenlogo.png" alt="Logo FAEN" class="logo">
         <h1>Carreras</h1>
         <button class="menu-toggle" id="menu-toggle">☰</button>
-        <nav id="navbar-menu">
+       <nav id="navbar-menu">
             <ul>
                 <li><a href="index.html"><span class="nav-icon">🏠</span> Inicio</a></li>
                 <li><a href="help-guide.html"><span class="nav-icon">❓</span> Guía</a></li>
@@ -133,12 +133,9 @@
                 <li><a href="autoridades.html"><span class="nav-icon">👔</span> Autoridades</a></li>
                 <li><a href="contacto.html"><span class="nav-icon">📞</span> Contacto</a></li>
                 <li class="dropdown">
-                    <a href="#" class="dropdown-toggle"><span class="nav-icon">👨‍🎓</span> Estudiantes <span class="dropdown-arrow">▼</span></a>
-                    <ul class="dropdown-menu">
-                        <li id="preinscripcion-item" style="display: none;">
-                            <a id="preinscripcion-link" href="#" target="_blank"><span class="nav-icon">📝</span> Preinscripción</a>
-                        </li>
-                        <li><a href="https://guarani.unf.edu.ar/autogestion/" target="_blank"><span class="nav-icon">🔐</span> Autogestión</a></li>
+                    <a href="#" class="dropdown-toggle"><span class="nav-icon">📚</span> Claustro <span class="dropdown-arrow">▼</span></a>
+                    <ul class="dropdown-menu" id="claustro-dropdown">
+                        <!-- Los claustros se cargarán dinámicamente aquí -->
                     </ul>
                 </li>
             </ul>
@@ -149,8 +146,38 @@
         <section class="carreras-container">
             <h2>📚 Programas Académicos</h2>
             
-            <div id="carreras-grid" class="carreras-grid">
-                <div class="empty-message">
+            <div id="carreras-grid-container">
+                <!-- Carreras de Grado -->
+                <div id="categoria-grado" style="display: none;">
+                    <h3 style="border-bottom: 2px solid rgba(25, 55, 109, 0.6); padding-bottom: 10px; margin-top: 30px; margin-bottom: 20px; color: #333;">🎓 Carreras de Grado</h3>
+                    <div id="carreras-grado" class="carreras-grid">
+                        <div class="empty-message">
+                            <p>No hay carreras de grado disponibles</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Carreras de Posgrado -->
+                <div id="categoria-posgrado" style="display: none;">
+                    <h3 style="border-bottom: 2px solid rgba(25, 55, 109, 0.6); padding-bottom: 10px; margin-top: 30px; margin-bottom: 20px; color: #333;">📖 Carreras de Posgrado</h3>
+                    <div id="carreras-posgrado" class="carreras-grid">
+                        <div class="empty-message">
+                            <p>No hay carreras de posgrado disponibles</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Cursos o Charlas -->
+                <div id="categoria-cursos" style="display: none;">
+                    <h3 style="border-bottom: 2px solid rgba(25, 55, 109, 0.6); padding-bottom: 10px; margin-top: 30px; margin-bottom: 20px; color: #333;">💡 Cursos o Charlas</h3>
+                    <div id="carreras-cursos" class="carreras-grid">
+                        <div class="empty-message">
+                            <p>No hay cursos o charlas disponibles</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="carreras-loading" class="empty-message" style="grid-column: 1 / -1;">
                     <div class="empty-message-icon">⏳</div>
                     <p>Cargando carreras...</p>
                 </div>
@@ -186,71 +213,105 @@
         let carrerasData = [];
 
         async function loadPublicCarreras() {
-            const carrerasGrid = document.getElementById('carreras-grid');
+            const loadingDiv = document.getElementById('carreras-loading');
             
             try {
                 const res = await fetch('/api/carreras');
                 carrerasData = await res.json();
                 
-                carrerasGrid.innerHTML = '';
-                
-                if (!carrerasData || carrerasData.length === 0) {
-                    carrerasGrid.innerHTML = `
+                // Agrupar carreras por categoría
+                const categorias = {
+                    grado: [],
+                    posgrado: [],
+                    cursos: []
+                };
+
+                carrerasData.forEach(carrera => {
+                    const cat = carrera.category || 'grado';
+                    if (categorias[cat]) {
+                        categorias[cat].push(carrera);
+                    }
+                });
+
+                // Mostrar u ocultar secciones según si tienen carreras
+                mostrarSeccionCarreras('grado', categorias.grado);
+                mostrarSeccionCarreras('posgrado', categorias.posgrado);
+                mostrarSeccionCarreras('cursos', categorias.cursos);
+
+                // Ocultar el mensaje de carga
+                if (loadingDiv) loadingDiv.style.display = 'none';
+
+                // Si no hay carreras en ninguna categoría, mostrar mensaje
+                if (carrerasData.length === 0) {
+                    const container = document.getElementById('carreras-grid-container');
+                    container.innerHTML = `
                         <div class="empty-message" style="grid-column: 1 / -1;">
                             <div class="empty-message-icon">📋</div>
                             <p>No hay carreras disponibles en este momento</p>
                         </div>
                     `;
-                    return;
                 }
-
-                carrerasData.forEach(carrera => {
-                    const card = document.createElement('div');
-                    card.className = 'carrera-card';
-                    
-                    const title = escapeHtml(carrera.title || 'Sin título');
-                    const code = escapeHtml(carrera.code || '');
-                    const description = escapeHtml(carrera.description || '');
-                    const duration = carrera.duration || 1;
-
-                    // Truncar descripción a 150 caracteres para la tarjeta
-                    const descriptionPreview = description.length > 150 
-                        ? description.substring(0, 150) + '...' 
-                        : description;
-
-                    card.innerHTML = `
-                        <div class="carrera-header" style="cursor: pointer;">
-                            <h3>${title}</h3>
-                            <span class="carrera-code">${code}</span>
-                        </div>
-                        <div class="carrera-content" style="cursor: pointer;">
-                            <p class="carrera-description">${descriptionPreview}</p>
-                            <div class="carrera-duration">
-                                <span class="carrera-duration-icon">⏱️</span>
-                                <span>${duration} ${duration === 1 ? 'año' : 'años'}</span>
-                            </div>
-                    `;
-
-                    // Agregar evento para abrir modal
-                    const headerAndContent = card.querySelector('.carrera-header, .carrera-content');
-                    card.querySelectorAll('.carrera-header, .carrera-content').forEach(el => {
-                        el.addEventListener('click', () => {
-                            mostrarDetalleCarrera(carrera);
-                        });
-                    });
-                    
-                    carrerasGrid.appendChild(card);
-                });
 
             } catch (err) {
                 console.error('Error cargando carreras:', err);
-                carrerasGrid.innerHTML = `
+                const container = document.getElementById('carreras-grid-container');
+                container.innerHTML = `
                     <div class="empty-message" style="grid-column: 1 / -1;">
                         <div class="empty-message-icon">⚠️</div>
                         <p>Error al cargar las carreras</p>
                     </div>
                 `;
             }
+        }
+
+        function mostrarSeccionCarreras(categoria, carreras) {
+            const seccionDiv = document.getElementById('categoria-' + categoria);
+            const gridDiv = document.getElementById('carreras-' + categoria);
+            
+            if (!carreras || carreras.length === 0) {
+                seccionDiv.style.display = 'none';
+                return;
+            }
+
+            seccionDiv.style.display = 'block';
+            gridDiv.innerHTML = '';
+
+            carreras.forEach(carrera => {
+                const card = document.createElement('div');
+                card.className = 'carrera-card';
+                
+                const title = escapeHtml(carrera.title || 'Sin título');
+                const code = escapeHtml(carrera.code || '');
+                const description = escapeHtml(carrera.description || '');
+                const duration = carrera.duration || 1;
+
+                // Truncar descripción a 150 caracteres para la tarjeta
+                const descriptionPreview = description.length > 150 
+                    ? description.substring(0, 150) + '...' 
+                    : description;
+
+                card.innerHTML = `
+                    <div class="carrera-header" style="cursor: pointer;">
+                        <h3>${title}</h3>
+                        <span class="carrera-code">${code}</span>
+                    </div>
+                    <div class="carrera-content" style="cursor: pointer;">
+                        <p class="carrera-description">${descriptionPreview}</p>
+                        <div class="carrera-duration">
+                            <span class="carrera-duration-icon">⏱️</span>
+                            <span>${duration} ${duration === 1 ? 'año' : 'años'}</span>
+                        </div>
+                `;
+
+                // Agregar evento para abrir modal
+                card.querySelectorAll('.carrera-header, .carrera-content').forEach(el => {
+                    el.addEventListener('click', () => {
+                        mostrarDetalleCarrera(carrera);
+                    });
+                });
+                
+                gridDiv.appendChild(card);
+            });
         }
 
         function setupDetalleModal() {
@@ -288,9 +349,17 @@
                 html += '</div>';
             }
 
-            // Código y duración
-            html += '<div style="display: flex; gap: 20px; margin-bottom: 20px;">';
+            // Código, categoría y duración
+            const categoryMap = {
+                'grado': 'Carrera de Grado',
+                'posgrado': 'Carrera de Posgrado',
+                'cursos': 'Cursos o Charlas'
+            };
+            const categoryName = categoryMap[carrera.category] || carrera.category || 'Carrera de Grado';
+
+            html += '<div style="display: flex; gap: 20px; margin-bottom: 20px; flex-wrap: wrap;">';
             html += '<div><strong>Código:</strong> <code>' + escapeHtml(carrera.code || '') + '</code></div>';
+            html += '<div><strong>Categoría:</strong> ' + escapeHtml(categoryName) + '</div>';
             html += '<div><strong>Duración:</strong> ' + (carrera.duration || 1) + ' años</div>';
             html += '</div>';
 

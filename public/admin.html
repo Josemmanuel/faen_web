@@ -8,7 +8,7 @@
 </head>
 <body>
     <header>
-        <img src="images/logofaen.png" alt="Logo FAEN" class="logo">
+        <img src="images/faenlogo.png" alt="Logo FAEN" class="logo">
         <div class="header-content">
             <h1>📰 Panel de Administración</h1>
             <p class="subtitle">Gestiona tu sitio web</p>
@@ -217,6 +217,16 @@
                             </div>
 
                             <div class="form-group">
+                                <label for="carrera-category">Categoría *</label>
+                                <select id="carrera-category" required>
+                                    <option value="">-- Selecciona una categoría --</option>
+                                    <option value="grado">Carrera de Grado</option>
+                                    <option value="posgrado">Carrera de Posgrado</option>
+                                    <option value="cursos">Cursos o Charlas</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
                                 <label for="carrera-foto">Foto de la Carrera (opcional)</label>
                                 <div class="file-input-wrapper">
                                     <input type="file" id="carrera-foto" accept="image/*" class="file-input">
@@ -250,6 +260,7 @@
                             <tr>
                                 <th>Nombre</th>
                                 <th>Código</th>
+                                <th>Categoría</th>
                                 <th>Descripción</th>
                                 <th>Duración</th>
                                 <th>Acciones</th>
@@ -257,7 +268,7 @@
                         </thead>
                         <tbody id="admin-carreras-list">
                             <tr>
-                                <td colspan="5" class="text-center">Cargando carreras...</td>
+                                <td colspan="6" class="text-center">Cargando carreras...</td>
                             </tr>
                         </tbody>
                     </table>
@@ -488,34 +499,48 @@
                     <div id="config-message" class="message" style="display: none; margin-top: 15px;"></div>
                 </div>
 
-                <!-- Enlaces de Estudiantes -->
+                <!-- Enlaces de Claustro -->
                 <div class="config-card">
-                    <h3>👨‍🎓 Enlaces para Estudiantes</h3>
-                    <p class="config-description">Administra los enlaces que aparecen en la sección de Estudiantes (Preinscripción, Aula Virtual, Formularios de Eventos, etc.)</p>
+                    <h3>📚 Enlaces para Claustros</h3>
+                    <p class="config-description">Administra los enlaces que aparecen en cada claustro (Estudiantes, Graduados, Docentes, No Docentes)</p>
                     
                     <div style="margin-bottom: 20px;">
-                        <h4>Agregar nuevo enlace</h4>
+                        <h4>Selecciona un claustro</h4>
                         <div class="form-group">
-                            <label for="link-title">Nombre del enlace *</label>
-                            <input type="text" id="link-title" placeholder="Ej: Aula Virtual, Formulario de Inscripción" class="form-input">
+                            <label for="claustro-select">Claustro *</label>
+                            <select id="claustro-select" class="form-input">
+                                <option value="">-- Selecciona un claustro --</option>
+                                <option value="estudiantes">👨‍🎓 Estudiantes</option>
+                                <option value="graduados">🎓 Graduados</option>
+                                <option value="docentes">👨‍🏫 Docentes</option>
+                                <option value="no-docentes">👨‍💼 No Docentes</option>
+                            </select>
                         </div>
-                        <div class="form-group">
-                            <label for="link-url">URL *</label>
-                            <input type="url" id="link-url" placeholder="https://ejemplo.com" class="form-input">
-                        </div>
-                        <div class="form-group">
-                            <label for="link-icon">Emoji/Icono</label>
-                            <input type="text" id="link-icon" placeholder="📚, 🎓, 📝, etc." maxlength="2" class="form-input" style="max-width: 100px;">
-                        </div>
-                        <div class="form-actions">
-                            <button id="btn-agregar-link" class="btn btn-primary">➕ Agregar enlace</button>
-                        </div>
-                        <div id="link-add-message" class="message" style="display: none; margin-top: 10px;"></div>
                     </div>
 
-                    <div style="border-top: 1px solid #ddd; padding-top: 20px;">
-                        <h4>Enlaces existentes</h4>
-                        <div id="student-links-list" style="display: grid; gap: 10px;">
+                    <div style="margin-bottom: 20px; border: 1px solid #e0e0e0; padding: 15px; border-radius: 4px; display: none;" id="claustro-form-container">
+                        <h4>Agregar enlace a <span id="claustro-nombre"></span></h4>
+                        <div class="form-group">
+                            <label for="claustro-link-title">Nombre del enlace *</label>
+                            <input type="text" id="claustro-link-title" placeholder="Ej: Portal de Estudiantes, Aula Virtual" class="form-input">
+                        </div>
+                        <div class="form-group">
+                            <label for="claustro-link-url">URL *</label>
+                            <input type="url" id="claustro-link-url" placeholder="https://ejemplo.com" class="form-input">
+                        </div>
+                        <div class="form-group">
+                            <label for="claustro-link-icon">Emoji/Icono</label>
+                            <input type="text" id="claustro-link-icon" placeholder="📚, 🎓, 📝, etc." maxlength="2" class="form-input" style="max-width: 100px;">
+                        </div>
+                        <div class="form-actions">
+                            <button id="btn-agregar-claustro-link" class="btn btn-primary">➕ Agregar enlace</button>
+                        </div>
+                        <div id="claustro-link-add-message" class="message" style="display: none; margin-top: 10px;"></div>
+                    </div>
+
+                    <div style="border-top: 1px solid #ddd; padding-top: 20px; display: none;" id="claustro-links-container">
+                        <h4>Enlaces de <span id="claustro-nombre-display"></span></h4>
+                        <div id="claustro-links-list" style="display: grid; gap: 10px;">
                             <p style="color: #999;">Cargando enlaces...</p>
                         </div>
                     </div>

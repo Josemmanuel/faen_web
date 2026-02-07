@@ -53,6 +53,40 @@ let ConfigService = class ConfigService {
                 enabled: false,
                 url: 'https://guarani.unf.edu.ar/preinscripcion/unaf/?__o=',
             },
+            studentLinks: [
+                {
+                    id: '1',
+                    title: 'Autogestión',
+                    url: 'https://guarani.unf.edu.ar/autogestion/',
+                    icon: '🔐'
+                }
+            ],
+            claustros: [
+                {
+                    id: 'estudiantes',
+                    name: 'Estudiantes',
+                    icon: '👨‍🎓',
+                    links: []
+                },
+                {
+                    id: 'graduados',
+                    name: 'Graduados',
+                    icon: '🎓',
+                    links: []
+                },
+                {
+                    id: 'docentes',
+                    name: 'Docentes',
+                    icon: '👨‍🏫',
+                    links: []
+                },
+                {
+                    id: 'no-docentes',
+                    name: 'No Docentes',
+                    icon: '👨‍💼',
+                    links: []
+                }
+            ]
         };
         const projectRoot = globalThis['projectRoot'] || process.cwd();
         this.configFile = path.join(projectRoot, 'data', 'config.json');
@@ -90,6 +124,92 @@ let ConfigService = class ConfigService {
         };
         fs.writeFileSync(this.configFile, JSON.stringify(config, null, 2));
         return config.preinscripcion;
+    }
+    getStudentLinks() {
+        const config = this.getConfig();
+        return config.studentLinks || [];
+    }
+    addStudentLink(link) {
+        const config = this.getConfig();
+        const newLink = {
+            ...link,
+            id: Date.now().toString(),
+        };
+        if (!config.studentLinks) {
+            config.studentLinks = [];
+        }
+        config.studentLinks.push(newLink);
+        fs.writeFileSync(this.configFile, JSON.stringify(config, null, 2));
+        return newLink;
+    }
+    updateStudentLink(id, link) {
+        var _a;
+        const config = this.getConfig();
+        const index = ((_a = config.studentLinks) === null || _a === void 0 ? void 0 : _a.findIndex(l => l.id === id)) || -1;
+        if (index === -1)
+            return null;
+        config.studentLinks[index] = { ...config.studentLinks[index], ...link };
+        fs.writeFileSync(this.configFile, JSON.stringify(config, null, 2));
+        return config.studentLinks[index];
+    }
+    removeStudentLink(id) {
+        var _a;
+        const config = this.getConfig();
+        const index = ((_a = config.studentLinks) === null || _a === void 0 ? void 0 : _a.findIndex(l => l.id === id)) || -1;
+        if (index === -1)
+            return false;
+        config.studentLinks.splice(index, 1);
+        fs.writeFileSync(this.configFile, JSON.stringify(config, null, 2));
+        return true;
+    }
+    getClaustros() {
+        const config = this.getConfig();
+        return config.claustros || [];
+    }
+    getClaustroById(id) {
+        var _a;
+        const config = this.getConfig();
+        return ((_a = config.claustros) === null || _a === void 0 ? void 0 : _a.find(c => c.id === id)) || null;
+    }
+    addLinkToClaustro(claustroId, link) {
+        var _a;
+        const config = this.getConfig();
+        const claustro = (_a = config.claustros) === null || _a === void 0 ? void 0 : _a.find(c => c.id === claustroId);
+        if (!claustro)
+            return null;
+        const newLink = {
+            ...link,
+            id: Date.now().toString(),
+        };
+        claustro.links.push(newLink);
+        fs.writeFileSync(this.configFile, JSON.stringify(config, null, 2));
+        return newLink;
+    }
+    updateClaustroLink(claustroId, linkId, link) {
+        var _a;
+        const config = this.getConfig();
+        const claustro = (_a = config.claustros) === null || _a === void 0 ? void 0 : _a.find(c => c.id === claustroId);
+        if (!claustro)
+            return null;
+        const linkIndex = claustro.links.findIndex(l => l.id === linkId);
+        if (linkIndex === -1)
+            return null;
+        claustro.links[linkIndex] = { ...claustro.links[linkIndex], ...link };
+        fs.writeFileSync(this.configFile, JSON.stringify(config, null, 2));
+        return claustro.links[linkIndex];
+    }
+    removeLinkFromClaustro(claustroId, linkId) {
+        var _a;
+        const config = this.getConfig();
+        const claustro = (_a = config.claustros) === null || _a === void 0 ? void 0 : _a.find(c => c.id === claustroId);
+        if (!claustro)
+            return false;
+        const linkIndex = claustro.links.findIndex(l => l.id === linkId);
+        if (linkIndex === -1)
+            return false;
+        claustro.links.splice(linkIndex, 1);
+        fs.writeFileSync(this.configFile, JSON.stringify(config, null, 2));
+        return true;
     }
 };
 exports.ConfigService = ConfigService;

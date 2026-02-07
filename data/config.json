@@ -10,5 +10,52 @@
       "icon": "🔗",
       "id": "1768826024163"
     }
+  ],
+  "claustros": [
+    {
+      "id": "estudiantes",
+      "name": "Estudiantes",
+      "icon": "👨‍🎓",
+      "links": [
+        {
+          "title": "Preinscripción",
+          "url": "https://guarani.unf.edu.ar/preinscripcion/unaf/?__o=",
+          "icon": "📝",
+          "id": "preinscripcion",
+          "conditional": "preinscripcion"
+        },
+        {
+          "title": "Autogestión",
+          "url": "https://guarani.unf.edu.ar/autogestion/",
+          "icon": "🔐",
+          "id": "autogestion",
+          "conditional": null
+        },
+        {
+          "title": "Aula Virtual",
+          "url": "https://faen.ead2.unf.edu.ar/",
+          "icon": "🔗",
+          "id": "1768951051946"
+        }
+      ]
+    },
+    {
+      "id": "graduados",
+      "name": "Graduados",
+      "icon": "🎓",
+      "links": []
+    },
+    {
+      "id": "docentes",
+      "name": "Docentes",
+      "icon": "👨‍🏫",
+      "links": []
+    },
+    {
+      "id": "no-docentes",
+      "name": "No Docentes",
+      "icon": "👨‍💼",
+      "links": []
+    }
   ]
 }

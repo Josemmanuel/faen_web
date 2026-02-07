@@ -4,6 +4,7 @@ export interface AutoridadItem {
     cargo: string;
     email?: string;
     telefono?: string;
+    foto?: string;
 }
 export declare class AutoridadesService {
     private getFilePath;

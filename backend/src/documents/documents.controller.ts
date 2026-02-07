@@ -10,10 +10,9 @@ import { UpdateDocumentDto } from './dto/update-document.dto';
 import { BasicAuthGuard } from '../auth/basic-auth.guard';
 
 function getUploadsDir() {
-  // Use resolve to properly navigate from __dirname to the project root
-  // __dirname is /backend/src/documents when running with ts-node-dev
-  // Going up 3 levels: src/documents -> src -> backend -> /home/josemanuel/Documentos/faen_web
-  const uploadsPath = resolve(__dirname, '../../../..', 'public', 'uploads');
+  // Usar la ruta base configurada globalmente en main.ts
+  const projectRoot = (globalThis as any)['projectRoot'] || resolve(__dirname, '../../../..');
+  const uploadsPath = resolve(projectRoot, 'public', 'uploads');
   console.log('📁 getUploadsDir() resolved to:', uploadsPath);
   if (!existsSync(uploadsPath)) {
     console.log('📁 Creating uploads directory:', uploadsPath);

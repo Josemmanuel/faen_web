@@ -25,7 +25,7 @@ exports.AppModule = AppModule = __decorate([
         imports: [
             serve_static_1.ServeStaticModule.forRoot({
                 rootPath: (0, path_1.resolve)(globalThis['projectRoot'] || (0, path_1.resolve)(__dirname, '../..'), 'public'),
-                exclude: ['/api*'],
+                exclude: ['/api(.*)'],
                 serveRoot: '/',
             }),
             config_module_1.ConfigModule,

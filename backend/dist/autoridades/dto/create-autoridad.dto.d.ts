@@ -3,4 +3,5 @@ export declare class CreateAutoridadDto {
     cargo: string;
     email?: string;
     telefono?: string;
+    foto?: string;
 }
