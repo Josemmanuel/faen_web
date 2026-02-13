@@ -430,6 +430,19 @@
                     <p style="font-size: 0.9rem; color: #666; margin: 0;">
                         <span id="mensajes-no-leidos">0</span> sin leer
                     </p>
+                    <div style="margin-left: auto; display: flex; gap: 8px; align-items: center;">
+                        <label style="font-size:0.85rem; color:#666;">Desde <input id="export-desde" type="date" style="margin-left:6px;" /></label>
+                        <label style="font-size:0.85rem; color:#666;">Hasta <input id="export-hasta" type="date" style="margin-left:6px;" /></label>
+                        <label style="font-size:0.85rem; color:#666;">Estado
+                            <select id="export-estado" style="margin-left:6px; padding:4px;">
+                                <option value="all">Todos</option>
+                                <option value="no-leido">Sin leer</option>
+                                <option value="leido">Leídos</option>
+                            </select>
+                        </label>
+                        <button id="export-mensajes-csv" class="btn btn-secondary">⬇️ Exportar CSV</button>
+                        <button id="export-mensajes-xlsx" class="btn btn-secondary">⬇️ Exportar Excel</button>
+                    </div>
                 </div>
 
                 <!-- Tabla de mensajes -->

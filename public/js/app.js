@@ -954,6 +954,39 @@ async function loadAdminMensajes() {
     }
 }
 
+// Export mensajes (CSV / XLSX) — ahora con filtros (fecha y estado)
+async function exportMensajes(format = 'csv', filters = {}) {
+    try {
+        const params = new URLSearchParams();
+        params.set('format', format);
+        if (filters.desde) params.set('desde', filters.desde);
+        if (filters.hasta) params.set('hasta', filters.hasta);
+        if (filters.estado) params.set('estado', filters.estado);
+
+        const res = await fetch('/api/mensajes/export?' + params.toString(), {
+            headers: getAuthHeaders()
+        });
+        if (!res.ok) throw new Error('Error en servidor: ' + res.statusText);
+
+        const blob = await res.blob();
+        const cd = res.headers.get('Content-Disposition') || '';
+        let filename = (format === 'xlsx') ? 'mensajes.xlsx' : 'mensajes.csv';
+        const m = cd.match(/filename\s*=\s*"?([^";]+)"?/i);
+        if (m && m[1]) filename = m[1];
+
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename.replace(/"/g, '');
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+    } catch (err) {
+        alert('Error exportando mensajes: ' + err.message);
+    }
+}
+
 async function viewMensaje(id) {
     try {
         const res = await fetch('/api/mensajes/' + id, {
@@ -1307,6 +1340,23 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         });
     });
+
+    // Export buttons for mensajes
+    const btnExportCSV = document.getElementById('export-mensajes-csv');
+    if (btnExportCSV) btnExportCSV.addEventListener('click', () => {
+        const desde = document.getElementById('export-desde')?.value || '';
+        const hasta = document.getElementById('export-hasta')?.value || '';
+        const estado = document.getElementById('export-estado')?.value || 'all';
+        exportMensajes('csv', { desde: desde, hasta: hasta, estado: estado });
+    });
+    const btnExportXLSX = document.getElementById('export-mensajes-xlsx');
+    if (btnExportXLSX) btnExportXLSX.addEventListener('click', () => {
+        const desde = document.getElementById('export-desde')?.value || '';
+        const hasta = document.getElementById('export-hasta')?.value || '';
+        const estado = document.getElementById('export-estado')?.value || 'all';
+        exportMensajes('xlsx', { desde: desde, hasta: hasta, estado: estado });
+    });
+
 
     // NEWS MODAL SETUP
     const modal = document.getElementById('modal-noticia');

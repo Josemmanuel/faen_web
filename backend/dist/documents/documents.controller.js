@@ -25,7 +25,8 @@ const create_document_dto_1 = require("./dto/create-document.dto");
 const update_document_dto_1 = require("./dto/update-document.dto");
 const basic_auth_guard_1 = require("../auth/basic-auth.guard");
 function getUploadsDir() {
-    const uploadsPath = (0, path_1.resolve)(__dirname, '../../../..', 'public', 'uploads');
+    const projectRoot = globalThis['projectRoot'] || (0, path_1.resolve)(__dirname, '../../../..');
+    const uploadsPath = (0, path_1.resolve)(projectRoot, 'public', 'uploads');
     console.log('📁 getUploadsDir() resolved to:', uploadsPath);
     if (!(0, fs_1.existsSync)(uploadsPath)) {
         console.log('📁 Creating uploads directory:', uploadsPath);

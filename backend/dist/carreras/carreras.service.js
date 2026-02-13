@@ -99,6 +99,7 @@ let CarrerasService = class CarrerasService {
             description: description,
             fullDescription: fullDescription || description,
             duration: parseInt(((_a = data.duration) === null || _a === void 0 ? void 0 : _a.toString()) || '1', 10),
+            category: data.category || 'grado',
             foto: data.foto || undefined,
             documento: data.documento || undefined,
         };

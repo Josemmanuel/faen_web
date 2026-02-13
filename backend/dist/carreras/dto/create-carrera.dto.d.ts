@@ -4,6 +4,7 @@ export declare class CreateCarreraDto {
     description?: string;
     fullDescription?: string;
     duration?: number;
+    category?: string;
     foto?: string;
     documento?: string;
 }

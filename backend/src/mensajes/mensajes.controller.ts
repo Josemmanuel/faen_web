@@ -1,7 +1,8 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Put, UseGuards, Query, Res } from '@nestjs/common';
 import { MensajesService } from './mensajes.service';
 import { CreateMensajeDto } from './dto/create-mensaje.dto';
 import { BasicAuthGuard } from '../auth/basic-auth.guard';
+import * as ExcelJS from 'exceljs';
 
 @Controller('api/mensajes')
 export class MensajesController {
@@ -17,6 +18,86 @@ export class MensajesController {
   @Get()
   findAll() {
     return this.mensajesService.findAll();
+  }
+
+  @UseGuards(BasicAuthGuard)
+  @Get('export')
+  async exportAll(
+    @Res() res: any,
+    @Query('format') format: string = 'csv',
+    @Query('desde') desde?: string,
+    @Query('hasta') hasta?: string,
+    @Query('estado') estado: string = 'all',
+  ) {
+    let mensajes = this.mensajesService.findAll();
+
+    // --- apply filters: fecha (YYYY-MM-DD) and estado (all|leido|no-leido)
+    const parseMensajeTs = (m: any) => {
+      if (m.fechaISO && typeof m.fechaISO === 'number') return m.fechaISO;
+      const parsed = Date.parse(m.fecha);
+      return isNaN(parsed) ? null : parsed;
+    };
+
+    if (desde) {
+      const desdeTs = Date.parse(desde + 'T00:00:00');
+      if (!isNaN(desdeTs)) {
+        mensajes = mensajes.filter(m => {
+          const ts = parseMensajeTs(m);
+          return ts === null ? false : ts >= desdeTs;
+        });
+      }
+    }
+
+    if (hasta) {
+      const hastaTs = Date.parse(hasta + 'T23:59:59.999');
+      if (!isNaN(hastaTs)) {
+        mensajes = mensajes.filter(m => {
+          const ts = parseMensajeTs(m);
+          return ts === null ? false : ts <= hastaTs;
+        });
+      }
+    }
+
+    if (estado && estado !== 'all') {
+      if (estado === 'leido') mensajes = mensajes.filter(m => !!m.leido);
+      else if (estado === 'no-leido') mensajes = mensajes.filter(m => !m.leido);
+    }
+
+    // Fields/order to export (respect form fields)
+    const headers = ['id', 'nombre', 'email', 'telefono', 'asunto', 'mensaje', 'fecha', 'leido'];
+
+    if (format === 'xlsx') {
+      const workbook = new ExcelJS.Workbook();
+      const sheet = workbook.addWorksheet('Mensajes');
+
+      sheet.addRow(headers);
+      mensajes.forEach((m) => {
+        sheet.addRow(headers.map(h => (m[h] !== undefined && m[h] !== null) ? m[h] : ''));
+      });
+
+      const buffer = await workbook.xlsx.writeBuffer();
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', 'attachment; filename="mensajes.xlsx"');
+      return res.send(Buffer.from(buffer));
+    }
+
+    // default -> CSV
+    const escapeCsv = (v: any) => {
+      if (v === null || v === undefined) return '';
+      const s = String(v).replace(/"/g, '""');
+      return '"' + s + '"';
+    };
+
+    const csvLines = [headers.join(',')];
+    mensajes.forEach(m => {
+      const row = headers.map(h => escapeCsv(m[h]));
+      csvLines.push(row.join(','));
+    });
+
+    const csv = csvLines.join('\n');
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="mensajes.csv"');
+    return res.send(csv);
   }
 
   @UseGuards(BasicAuthGuard)

@@ -9,7 +9,8 @@ export interface MensajeItem {
   telefono?: string;
   asunto: string;
   mensaje: string;
-  fecha: string;
+  fecha: string;          // human readable (no cambiar para compatibilidad UI)
+  fechaISO?: number;      // timestamp usado para filtrado/orden (nuevo)
   leido?: boolean;
 }
 
@@ -49,14 +50,16 @@ export class MensajesService {
 
   create(data: Partial<MensajeItem>): MensajeItem {
     const mensajes = this.findAll();
+    const now = Date.now();
     const item: MensajeItem = {
-      id: Date.now().toString(),
+      id: now.toString(),
       nombre: data.nombre || '',
       email: data.email || '',
       telefono: data.telefono || '',
       asunto: data.asunto || '',
       mensaje: data.mensaje || '',
       fecha: new Date().toLocaleString('es-AR'),
+      fechaISO: now,
       leido: false,
     };
     mensajes.push(item);

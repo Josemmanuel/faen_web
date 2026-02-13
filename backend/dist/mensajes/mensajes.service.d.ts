@@ -6,6 +6,7 @@ export interface MensajeItem {
     asunto: string;
     mensaje: string;
     fecha: string;
+    fechaISO?: number;
     leido?: boolean;
 }
 export declare class MensajesService {

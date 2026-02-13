@@ -5,6 +5,7 @@ export interface CarreraItem {
     description: string;
     fullDescription?: string;
     duration: number;
+    category?: string;
     foto?: string;
     documento?: string;
 }

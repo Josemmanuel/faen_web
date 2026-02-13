@@ -75,14 +75,16 @@ let MensajesService = class MensajesService {
     }
     create(data) {
         const mensajes = this.findAll();
+        const now = Date.now();
         const item = {
-            id: Date.now().toString(),
+            id: now.toString(),
             nombre: data.nombre || '',
             email: data.email || '',
             telefono: data.telefono || '',
             asunto: data.asunto || '',
             mensaje: data.mensaje || '',
             fecha: new Date().toLocaleString('es-AR'),
+            fechaISO: now,
             leido: false,
         };
         mensajes.push(item);
