@@ -2,7 +2,7 @@ import { Body, Controller, Delete, Get, Param, Post, Put, UseGuards } from '@nes
 import { AutoridadesService } from './autoridades.service';
 import { CreateAutoridadDto } from './dto/create-autoridad.dto';
 import { UpdateAutoridadDto } from './dto/update-autoridad.dto';
-import { BasicAuthGuard } from '../auth/basic-auth.guard';
+import { JwtAuthGuard } from '../auth/jwt.guard';
 
 @Controller('api/autoridades')
 export class AutoridadesController {
@@ -18,7 +18,7 @@ export class AutoridadesController {
     return this.autoridadesService.findOne(id);
   }
 
-  @UseGuards(BasicAuthGuard)
+  @UseGuards(JwtAuthGuard)
   @Post()
   create(@Body() dto: CreateAutoridadDto) {
     console.log('Recibiendo POST /api/autoridades con datos:', dto);
@@ -32,7 +32,7 @@ export class AutoridadesController {
     }
   }
 
-  @UseGuards(BasicAuthGuard)
+  @UseGuards(JwtAuthGuard)
   @Put(':id')
   update(@Param('id') id: string, @Body() dto: UpdateAutoridadDto) {
     const updated = this.autoridadesService.update(id, dto);
@@ -40,7 +40,7 @@ export class AutoridadesController {
     return updated;
   }
 
-  @UseGuards(BasicAuthGuard)
+  @UseGuards(JwtAuthGuard)
   @Delete(':id')
   remove(@Param('id') id: string) {
     const ok = this.autoridadesService.remove(id);

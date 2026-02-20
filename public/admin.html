@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Panel de Administración</title>
     <link rel="stylesheet" href="css/styles.css">
+    <!-- Admin Guard - Validación de acceso inmediata -->
+    <script src="js/admin-guard.js"></script>
 </head>
 <body>
     <header>
@@ -47,6 +49,10 @@
                 <a href="#" class="nav-item" data-section="configuracion">
                     <span class="nav-icon">⚙️</span>
                     <span class="nav-text">Configuración</span>
+                </a>
+                <a href="#" class="nav-item" data-section="usuarios">
+                    <span class="nav-icon">👤</span>
+                    <span class="nav-text">Usuarios y Roles</span>
                 </a>
                 <a href="index.html" class="nav-item">
                     <span class="nav-icon">🏠</span>
@@ -483,6 +489,157 @@
                 </div>
             </section>
 
+            <!-- Sección de Usuarios y Roles -->
+            <section class="dashboard-section" id="section-usuarios">
+                <div class="section-header">
+                    <h2>Gestionar Usuarios y Roles</h2>
+                </div>
+
+                <!-- Tabs -->
+                <div class="tabs-container" style="margin-bottom: 20px; border-bottom: 2px solid #e0e0e0; display: flex; gap: 10px;">
+                    <button class="tab-button active" onclick="switchTab('usuarios-tab')" style="padding: 10px 20px; background: none; border: none; border-bottom: 3px solid #007bff; cursor: pointer; font-weight: bold;">
+                        👤 Usuarios
+                    </button>
+                    <button class="tab-button" onclick="switchTab('roles-tab')" style="padding: 10px 20px; background: none; border: none; cursor: pointer; font-weight: bold; color: #666;">
+                        🔐 Roles
+                    </button>
+                </div>
+
+                <!-- TAB: USUARIOS -->
+                <div id="usuarios-tab" class="tab-content active" style="display: block;">
+                    <div style="margin-bottom: 15px;">
+                        <button id="btn-nuevo-usuario" class="btn btn-primary btn-large" onclick="openUserModal()">
+                            ➕ Nuevo Usuario
+                        </button>
+                    </div>
+
+                    <!-- Modal para crear/editar usuario -->
+                    <div id="modal-usuario" class="modal">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h3 id="modal-titulo-usuario">Nuevo Usuario</h3>
+                                <button class="modal-close" onclick="closeUserModal()">&times;</button>
+                            </div>
+                            <form id="user-form" enctype="multipart/form-data" class="modal-form">
+                                <div class="form-group">
+                                    <label for="user-username">Usuario *</label>
+                                    <input type="text" id="user-username" placeholder="Nombre de usuario" required>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="user-email">Email *</label>
+                                    <input type="email" id="user-email" placeholder="correo@ejemplo.com" required>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="user-password">Contraseña *</label>
+                                    <input type="password" id="user-password" placeholder="Contraseña" required>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="user-role">Rol *</label>
+                                    <select id="user-role" required>
+                                        <option value="">-- Selecciona un rol --</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="user-enabled">
+                                        <input type="checkbox" id="user-enabled" class="checkbox-input" checked>
+                                        <span>Usuario Activo</span>
+                                    </label>
+                                </div>
+
+                                <div class="form-actions">
+                                    <button type="submit" class="btn btn-success">Guardar Usuario</button>
+                                    <button type="button" onclick="closeUserModal()" class="btn btn-secondary">Cancelar</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Tabla de usuarios -->
+                    <div class="table-wrapper">
+                        <table class="usuarios-table">
+                            <thead>
+                                <tr>
+                                    <th>Usuario</th>
+                                    <th>Email</th>
+                                    <th>Rol</th>
+                                    <th>Estado</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="usuarios-tbody">
+                                <tr>
+                                    <td colspan="5" class="text-center">Cargando usuarios...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- TAB: ROLES -->
+                <div id="roles-tab" class="tab-content" style="display: none;">
+                    <div style="margin-bottom: 15px;">
+                        <button id="btn-nuevo-rol" class="btn btn-primary btn-large" onclick="openRoleModal()">
+                            ➕ Nuevo Rol
+                        </button>
+                    </div>
+
+                    <!-- Modal para crear/editar rol -->
+                    <div id="modal-rol" class="modal">
+                        <div class="modal-content" style="width: 700px; max-height: 90vh; overflow-y: auto;">
+                            <div class="modal-header">
+                                <h3 id="modal-titulo-rol">Nuevo Rol</h3>
+                                <button class="modal-close" onclick="closeRoleModal()">&times;</button>
+                            </div>
+                            <form id="role-form" class="modal-form">
+                                <div class="form-group">
+                                    <label for="role-name">Nombre del Rol *</label>
+                                    <input type="text" id="role-name" placeholder="Ej: Editor" required>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="role-description">Descripción *</label>
+                                    <textarea id="role-description" placeholder="Descripción del rol" required rows="3"></textarea>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Permisos por Módulo *</label>
+                                    <div id="role-permissions-container" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 10px;">
+                                        <!-- Se generará dinámicamente -->
+                                    </div>
+                                </div>
+
+                                <div class="form-actions">
+                                    <button type="submit" class="btn btn-success">Guardar Rol</button>
+                                    <button type="button" onclick="closeRoleModal()" class="btn btn-secondary">Cancelar</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Tabla de roles -->
+                    <div class="table-wrapper">
+                        <table class="roles-table">
+                            <thead>
+                                <tr>
+                                    <th>Nombre</th>
+                                    <th>Descripción</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="roles-tbody">
+                                <tr>
+                                    <td colspan="3" class="text-center">Cargando roles...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
             <!-- Sección de Configuración -->
             <section class="dashboard-section" id="section-configuracion">
                 <div class="section-header">
@@ -562,6 +719,39 @@
         </div>
     </main>
 
+    <script src="js/auth.js"></script>
+    <script src="js/users-admin.js"></script>
     <script src="js/app.js"></script>
+    <script>
+    // Validación adicional (backup, ya protegido por admin-guard.js)
+    if (!ensureAdminAccess()) {
+        return;
+    }
+
+    // Mostrar info del usuario actual
+    document.addEventListener('DOMContentLoaded', () => {
+        setUserInfo();
+        updatePermissionVisibility();
+    });
+
+    // Agregar botón de logout al header
+    const headerContent = document.querySelector('.header-content');
+    if (headerContent) {
+        const logoutBtn = document.createElement('button');
+        logoutBtn.className = 'logout-btn';
+        logoutBtn.innerHTML = '🚪 Salir';
+        logoutBtn.onclick = logout;
+        logoutBtn.style.position = 'absolute';
+        logoutBtn.style.right = '20px';
+        logoutBtn.style.top = '20px';
+        logoutBtn.style.padding = '8px 16px';
+        logoutBtn.style.backgroundColor = '#e74c3c';
+        logoutBtn.style.color = 'white';
+        logoutBtn.style.border = 'none';
+        logoutBtn.style.borderRadius = '5px';
+        logoutBtn.style.cursor = 'pointer';
+        headerContent.appendChild(logoutBtn);
+    }
+    </script>
 </body>
 </html>

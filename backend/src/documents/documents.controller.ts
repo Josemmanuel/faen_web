@@ -7,7 +7,7 @@ import { existsSync, mkdirSync } from 'fs';
 import { DocumentsService } from './documents.service';
 import { CreateDocumentDto } from './dto/create-document.dto';
 import { UpdateDocumentDto } from './dto/update-document.dto';
-import { BasicAuthGuard } from '../auth/basic-auth.guard';
+import { JwtAuthGuard } from '../auth/jwt.guard';
 
 function getUploadsDir() {
   // Usar la ruta base configurada globalmente en main.ts
@@ -61,7 +61,7 @@ export class DocumentsController {
     return this.documentsService.findOne(id);
   }
 
-  @UseGuards(BasicAuthGuard)
+  @UseGuards(JwtAuthGuard)
   @Post()
   @UseInterceptors(FileInterceptor('file', multerConfig))
   create(@Body() dto: CreateDocumentDto, @UploadedFile() file: Express.Multer.File) {
@@ -78,7 +78,7 @@ export class DocumentsController {
     });
   }
 
-  @UseGuards(BasicAuthGuard)
+  @UseGuards(JwtAuthGuard)
   @Put(':id')
   @UseInterceptors(FileInterceptor('file', multerConfig))
   update(@Param('id') id: string, @Body() dto: UpdateDocumentDto, @UploadedFile() file: Express.Multer.File) {
@@ -89,7 +89,7 @@ export class DocumentsController {
     return updated;
   }
 
-  @UseGuards(BasicAuthGuard)
+  @UseGuards(JwtAuthGuard)
   @Delete(':id')
   remove(@Param('id') id: string) {
     const ok = this.documentsService.remove(id);

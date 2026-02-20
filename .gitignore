@@ -1,0 +1,15 @@
+ctiva # Node / build artifacts
+node_modules/
+dist/
+
+# Backend specific
+/backend/node_modules/
+/backend/dist/
+
+# Editor / OS
+.vscode/
+.DS_Store
+npm-debug.log
+.env
+node_modules
+node_modules

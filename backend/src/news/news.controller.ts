@@ -7,7 +7,7 @@ import { existsSync, mkdirSync } from 'fs';
 import { NewsService } from './news.service';
 import { CreateNewsDto } from './dto/create-news.dto';
 import { UpdateNewsDto } from './dto/update-news.dto';
-import { BasicAuthGuard } from '../auth/basic-auth.guard';
+import { JwtAuthGuard } from '../auth/jwt.guard';
 
 function getUploadsDir() {
   // Use the global projectRoot that was set in main.ts
@@ -49,7 +49,7 @@ export class NewsController {
     return this.newsService.findOne(id);
   }
 
-  @UseGuards(BasicAuthGuard)
+  @UseGuards(JwtAuthGuard)
   @Post()
   @UseInterceptors(FileInterceptor('image', multerConfig))
   create(@Body() dto: CreateNewsDto, @UploadedFile() file: Express.Multer.File) {
@@ -59,7 +59,7 @@ export class NewsController {
     return this.newsService.create({ ...dto, image: imagePath });
   }
 
-  @UseGuards(BasicAuthGuard)
+  @UseGuards(JwtAuthGuard)
   @Put(':id')
   @UseInterceptors(FileInterceptor('image', multerConfig))
   update(@Param('id') id: string, @Body() dto: UpdateNewsDto, @UploadedFile() file: Express.Multer.File) {
@@ -70,7 +70,7 @@ export class NewsController {
     return updated;
   }
 
-  @UseGuards(BasicAuthGuard)
+  @UseGuards(JwtAuthGuard)
   @Delete(':id')
   remove(@Param('id') id: string) {
     const ok = this.newsService.remove(id);

@@ -1,6 +1,6 @@
 import { Controller, Get, Put, Post, Delete, Body, Param, UseGuards } from '@nestjs/common';
 import { ConfigService } from './config.service';
-import { BasicAuthGuard } from '../auth/basic-auth.guard';
+import { JwtAuthGuard } from '../auth/jwt.guard';
 
 @Controller('api/config')
 export class ConfigController {
@@ -31,19 +31,19 @@ export class ConfigController {
     return this.configService.getStudentLinks();
   }
 
-  @UseGuards(BasicAuthGuard)
+  @UseGuards(JwtAuthGuard)
   @Post('student-links')
   addStudentLink(@Body() data: { title: string; url: string; icon: string }) {
     return this.configService.addStudentLink(data);
   }
 
-  @UseGuards(BasicAuthGuard)
+  @UseGuards(JwtAuthGuard)
   @Put('student-links/:id')
   updateStudentLink(@Param('id') id: string, @Body() data: Partial<{ title: string; url: string; icon: string }>) {
     return this.configService.updateStudentLink(id, data);
   }
 
-  @UseGuards(BasicAuthGuard)
+  @UseGuards(JwtAuthGuard)
   @Delete('student-links/:id')
   removeStudentLink(@Param('id') id: string) {
     return this.configService.removeStudentLink(id);
@@ -59,13 +59,13 @@ export class ConfigController {
     return this.configService.getClaustroById(id);
   }
 
-  @UseGuards(BasicAuthGuard)
+  @UseGuards(JwtAuthGuard)
   @Post('claustros/:id/links')
   addLinkToClaustro(@Param('id') claustroId: string, @Body() data: { title: string; url: string; icon: string }) {
     return this.configService.addLinkToClaustro(claustroId, data);
   }
 
-  @UseGuards(BasicAuthGuard)
+  @UseGuards(JwtAuthGuard)
   @Put('claustros/:id/links/:linkId')
   updateClaustroLink(
     @Param('id') claustroId: string,
@@ -75,7 +75,7 @@ export class ConfigController {
     return this.configService.updateClaustroLink(claustroId, linkId, data);
   }
 
-  @UseGuards(BasicAuthGuard)
+  @UseGuards(JwtAuthGuard)
   @Delete('claustros/:id/links/:linkId')
   removeLinkFromClaustro(@Param('id') claustroId: string, @Param('linkId') linkId: string) {
     return this.configService.removeLinkFromClaustro(claustroId, linkId);

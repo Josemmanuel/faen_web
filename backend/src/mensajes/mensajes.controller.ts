@@ -1,7 +1,7 @@
 import { Body, Controller, Delete, Get, Param, Post, Put, UseGuards, Query, Res } from '@nestjs/common';
 import { MensajesService } from './mensajes.service';
 import { CreateMensajeDto } from './dto/create-mensaje.dto';
-import { BasicAuthGuard } from '../auth/basic-auth.guard';
+import { JwtAuthGuard } from '../auth/jwt.guard';
 import * as ExcelJS from 'exceljs';
 
 @Controller('api/mensajes')
@@ -14,13 +14,13 @@ export class MensajesController {
     return this.mensajesService.create(dto);
   }
 
-  @UseGuards(BasicAuthGuard)
+  @UseGuards(JwtAuthGuard)
   @Get()
   findAll() {
     return this.mensajesService.findAll();
   }
 
-  @UseGuards(BasicAuthGuard)
+  @UseGuards(JwtAuthGuard)
   @Get('export')
   async exportAll(
     @Res() res: any,
@@ -100,13 +100,13 @@ export class MensajesController {
     return res.send(csv);
   }
 
-  @UseGuards(BasicAuthGuard)
+  @UseGuards(JwtAuthGuard)
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.mensajesService.findOne(id);
   }
 
-  @UseGuards(BasicAuthGuard)
+  @UseGuards(JwtAuthGuard)
   @Put(':id/leido')
   markAsRead(@Param('id') id: string) {
     const updated = this.mensajesService.markAsRead(id);
@@ -114,7 +114,7 @@ export class MensajesController {
     return updated;
   }
 
-  @UseGuards(BasicAuthGuard)
+  @UseGuards(JwtAuthGuard)
   @Delete(':id')
   remove(@Param('id') id: string) {
     const ok = this.mensajesService.remove(id);

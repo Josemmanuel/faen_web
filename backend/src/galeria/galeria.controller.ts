@@ -15,7 +15,7 @@ import { diskStorage } from 'multer';
 import { Express } from 'express';
 import * as path from 'path';
 import { GaleriaService, Foto } from './galeria.service';
-import { BasicAuthGuard } from '../auth/basic-auth.guard';
+import { JwtAuthGuard } from '../auth/jwt.guard';
 
 @Controller('api/galeria')
 export class GaleriaController {
@@ -27,7 +27,7 @@ export class GaleriaController {
   }
 
   @Post('subir')
-  @UseGuards(BasicAuthGuard)
+  @UseGuards(JwtAuthGuard)
   @UseInterceptors(
     FileInterceptor('foto', {
       storage: diskStorage({
@@ -76,7 +76,7 @@ export class GaleriaController {
   }
 
   @Delete(':id')
-  @UseGuards(BasicAuthGuard)
+  @UseGuards(JwtAuthGuard)
   async deleteFoto(@Param('id') id: string): Promise<{ message: string }> {
     await this.galeriaService.deleteFoto(id);
     return { message: 'Foto eliminada correctamente' };

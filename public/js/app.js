@@ -31,12 +31,11 @@ function makeExcerpt(text, max) {
 }
 
 function getAuthHeaders() {
-    const user = sessionStorage.getItem('admin_user') || 'admin';
-    const pass = sessionStorage.getItem('admin_pass') || '1234';
-    const credentials = btoa(user + ':' + pass);
-    console.log('getAuthHeaders - user:', user, 'pass:', pass, 'auth header:', 'Basic ' + credentials);
+    // Usar JWT en lugar de Basic Auth
+    const token = getToken();
     return {
-        'Authorization': 'Basic ' + credentials
+        'Authorization': token ? `Bearer ${token}` : '',
+        'Content-Type': 'application/json'
     };
 }
 
@@ -1268,17 +1267,42 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     if (!isAdminPage) return;
 
-    // Admin authentication
-    const isAuthenticated = sessionStorage.getItem('admin_authenticated');
-    if (!isAuthenticated) {
+    // Admin authentication (compatible with JWT-based auth)
+    let isAdminAuthenticated = sessionStorage.getItem('admin_authenticated');
+
+    // If a JWT token exists (from `auth.js`), consider the user authenticated so we don't show the modal twice
+    if (!isAdminAuthenticated && typeof isAuthenticated === 'function' && isAuthenticated()) {
+        sessionStorage.setItem('admin_authenticated', 'true');
+        isAdminAuthenticated = 'true';
+    }
+
+    if (!isAdminAuthenticated) {
         const credentials = await showLoginModal();
         if (!credentials) {
             window.location.href = 'index.html';
             return;
         }
-        sessionStorage.setItem('admin_user', credentials.user);
-        sessionStorage.setItem('admin_pass', credentials.pass);
-        sessionStorage.setItem('admin_authenticated', 'true');
+
+        // Prefer JWT login when `login()` is available (avoids double login across pages)
+        if (typeof login === 'function') {
+            try {
+                await login(credentials.user, credentials.pass);
+                // `login()` from auth.js already stores token + user in localStorage
+                sessionStorage.setItem('admin_authenticated', 'true');
+            } catch (err) {
+                // Fallback to legacy session-based auth for backward compatibility
+                console.warn('JWT login via modal failed — using legacy session auth', err);
+                sessionStorage.setItem('admin_user', credentials.user);
+                sessionStorage.setItem('admin_pass', credentials.pass);
+                sessionStorage.setItem('admin_authenticated', 'true');
+            }
+        } else {
+            // No JWT available on the page — keep legacy behaviour
+            sessionStorage.setItem('admin_user', credentials.user);
+            sessionStorage.setItem('admin_pass', credentials.pass);
+            sessionStorage.setItem('admin_authenticated', 'true');
+        }
+
         sessionStorage.setItem('admin_last_activity', Date.now().toString());
     }
     

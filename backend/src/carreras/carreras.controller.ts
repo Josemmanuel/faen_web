@@ -2,7 +2,7 @@ import { Body, Controller, Delete, Get, Param, Post, Put, UseGuards } from '@nes
 import { CarrerasService } from './carreras.service';
 import { CreateCarreraDto } from './dto/create-carrera.dto';
 import { UpdateCarreraDto } from './dto/update-carrera.dto';
-import { BasicAuthGuard } from '../auth/basic-auth.guard';
+import { JwtAuthGuard } from '../auth/jwt.guard';
 
 @Controller('api/carreras')
 export class CarrerasController {
@@ -18,7 +18,7 @@ export class CarrerasController {
     return this.carrerasService.findOne(id);
   }
 
-  @UseGuards(BasicAuthGuard)
+  @UseGuards(JwtAuthGuard)
   @Post()
   create(@Body() dto: CreateCarreraDto) {
     console.log('=== POST /api/carreras ===');
@@ -30,7 +30,7 @@ export class CarrerasController {
     return this.carrerasService.create(dto);
   }
 
-  @UseGuards(BasicAuthGuard)
+  @UseGuards(JwtAuthGuard)
   @Put(':id')
   update(@Param('id') id: string, @Body() dto: UpdateCarreraDto) {
     const updated = this.carrerasService.update(id, dto);
@@ -38,7 +38,7 @@ export class CarrerasController {
     return updated;
   }
 
-  @UseGuards(BasicAuthGuard)
+  @UseGuards(JwtAuthGuard)
   @Delete(':id')
   remove(@Param('id') id: string) {
     const ok = this.carrerasService.remove(id);

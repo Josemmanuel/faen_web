@@ -8,6 +8,8 @@ import { CarrerasModule } from './carreras/carreras.module';
 import { AutoridadesModule } from './autoridades/autoridades.module';
 import { MensajesModule } from './mensajes/mensajes.module';
 import { ConfigModule } from './config/config.module';
+import { UsersModule } from './users/users.module';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
@@ -18,6 +20,8 @@ import { ConfigModule } from './config/config.module';
       serveRoot: '/',
     }),
     ConfigModule,
+    AuthModule,
+    UsersModule,
     NewsModule,
     GaleriaModule,
     DocumentsModule,
