@@ -724,12 +724,9 @@
     <script src="js/app.js"></script>
     <script>
     // Validación adicional (backup, ya protegido por admin-guard.js)
-    if (!ensureAdminAccess()) {
-        return;
-    }
-
-    // Mostrar info del usuario actual
+    // Nota: ensureAdminAccess() ya se ejecutó en admin-guard.js, esto es solo por seguridad
     document.addEventListener('DOMContentLoaded', () => {
+        // Mostrar info del usuario actual
         setUserInfo();
         updatePermissionVisibility();
     });
@@ -740,7 +737,12 @@
         const logoutBtn = document.createElement('button');
         logoutBtn.className = 'logout-btn';
         logoutBtn.innerHTML = '🚪 Salir';
-        logoutBtn.onclick = logout;
+        logoutBtn.onclick = function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            // Llamar a la función logout() de auth.js
+            logout();
+        };
         logoutBtn.style.position = 'absolute';
         logoutBtn.style.right = '20px';
         logoutBtn.style.top = '20px';

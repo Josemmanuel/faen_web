@@ -30,14 +30,25 @@ async function login(username, password) {
 }
 
 function logout() {
-  // Limpiar tokens del frontend
+  // Limpiar tokens del frontend - SER EXPLÍCITO
+  console.log('[Logout] Iniciando logout...');
+
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(USER_KEY);
-  sessionStorage.removeItem('admin_authenticated'); // Limpiar flag legacy si existe
+  localStorage.removeItem('faen_auth_token');
+  localStorage.removeItem('faen_auth_user');
+
+  sessionStorage.removeItem('admin_authenticated');
   sessionStorage.removeItem('admin_user');
   sessionStorage.removeItem('admin_pass');
+  sessionStorage.clear();
 
-  // Redirigir a login (no a index)
+  console.log('[Logout] Tokens eliminados');
+  console.log('[Logout] Token en localStorage:', localStorage.getItem(TOKEN_KEY));
+  console.log('[Logout] User en localStorage:', localStorage.getItem(USER_KEY));
+
+  // Redirigir a login (no a index) - usar replace() para no dejar en historial
+  console.log('[Logout] Redirigiendo a /login.html');
   window.location.replace('/login.html');
 }
 
