@@ -31,12 +31,35 @@ function makeExcerpt(text, max) {
 }
 
 function getAuthHeaders() {
-    // Usar JWT en lugar de Basic Auth
-    const token = getToken();
+    // CAMBIO: Ahora usamos el token de localStorage
+    const token = localStorage.getItem('faen_auth_token');
     return {
         'Authorization': token ? `Bearer ${token}` : '',
         'Content-Type': 'application/json'
     };
+}
+
+// AÑADE ESTA FUNCIÓN AL FINAL DE TU APP.JS
+async function logoutSession() {
+    if (!confirm('¿Estás seguro de que deseas cerrar sesión?')) return;
+
+    try {
+        // Avisamos al servidor para que borre la Cookie
+        await fetch('/api/auth/logout', { 
+            method: 'POST',
+            headers: getAuthHeaders() 
+        });
+    } catch (e) {
+        console.error('Error en logout de servidor');
+    }
+
+    // Limpiamos todo el rastro local
+    localStorage.removeItem('faen_auth_token');
+    localStorage.removeItem('faen_auth_user');
+    sessionStorage.clear();
+    
+    // Redirección forzada al login
+    window.location.href = 'login.html';
 }
 
 function updateSessionActivity() {

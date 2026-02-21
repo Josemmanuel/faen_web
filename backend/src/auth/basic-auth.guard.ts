@@ -17,7 +17,7 @@ export class BasicAuthGuard implements CanActivate {
     
     const expectedUser = process.env.ADMIN_USER || 'admin';
     // Hash pre-generado de '1234'
-    const expectedPassHash = process.env.ADMIN_PASS_HASH || '$2b$10$9r38a9aNgRnQnMpmcTngge6T1KGfrKSix0anfZAp11MPZ5/4DEiE.';
+    const expectedPassHash = process.env.ADMIN_PASS_HASH || '$2b$10$7pM7P.Rtm8kXGvS3I6C0ne1.p0KqK7/7lO9eMvX8q.K6Q9f6q8q5m';
     
     console.log('BasicAuthGuard - user:', user, 'pass:', pass, 'expectedUser:', expectedUser);
     

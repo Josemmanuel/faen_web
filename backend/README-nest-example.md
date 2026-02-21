@@ -28,7 +28,7 @@ npm install @nestjs/platform-express multer class-transformer class-validator
 
 ```
 ADMIN_USER=admin
-ADMIN_PASS=1234
+ADMIN_PASS=12345678
 ```
 
 6. Ejecuta en desarrollo:
