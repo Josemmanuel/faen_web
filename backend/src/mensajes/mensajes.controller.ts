@@ -3,6 +3,7 @@ import { MensajesService } from './mensajes.service';
 import { CreateMensajeDto } from './dto/create-mensaje.dto';
 import { JwtAuthGuard } from '../auth/jwt.guard';
 import * as ExcelJS from 'exceljs';
+import { Response } from 'express';
 
 @Controller('api/mensajes')
 export class MensajesController {
@@ -10,7 +11,6 @@ export class MensajesController {
 
   @Post()
   create(@Body() dto: CreateMensajeDto) {
-    console.log('Controller recibió DTO:', dto);
     return this.mensajesService.create(dto);
   }
 
@@ -23,7 +23,7 @@ export class MensajesController {
   @UseGuards(JwtAuthGuard)
   @Get('export')
   async exportAll(
-    @Res() res: any,
+    @Res() res: Response,
     @Query('format') format: string = 'csv',
     @Query('desde') desde?: string,
     @Query('hasta') hasta?: string,
@@ -31,7 +31,7 @@ export class MensajesController {
   ) {
     let mensajes = this.mensajesService.findAll();
 
-    // --- apply filters: fecha (YYYY-MM-DD) and estado (all|leido|no-leido)
+    // Lógica de filtrado
     const parseMensajeTs = (m: any) => {
       if (m.fechaISO && typeof m.fechaISO === 'number') return m.fechaISO;
       const parsed = Date.parse(m.fecha);
@@ -63,29 +63,29 @@ export class MensajesController {
       else if (estado === 'no-leido') mensajes = mensajes.filter(m => !m.leido);
     }
 
-    // Fields/order to export (respect form fields)
     const headers = ['id', 'nombre', 'email', 'telefono', 'asunto', 'mensaje', 'fecha', 'leido'];
 
+    // Exportación XLSX
     if (format === 'xlsx') {
       const workbook = new ExcelJS.Workbook();
       const sheet = workbook.addWorksheet('Mensajes');
 
       sheet.addRow(headers);
       mensajes.forEach((m) => {
-        sheet.addRow(headers.map(h => (m[h] !== undefined && m[h] !== null) ? m[h] : ''));
+        sheet.addRow(headers.map(h => m[h] ?? ''));
       });
 
       const buffer = await workbook.xlsx.writeBuffer();
       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
       res.setHeader('Content-Disposition', 'attachment; filename="mensajes.xlsx"');
-      return res.send(Buffer.from(buffer));
+      return res.send(Buffer.from(buffer as any));
     }
 
-    // default -> CSV
+    // Exportación CSV (Default)
     const escapeCsv = (v: any) => {
       if (v === null || v === undefined) return '';
       const s = String(v).replace(/"/g, '""');
-      return '"' + s + '"';
+      return `"${s}"`;
     };
 
     const csvLines = [headers.join(',')];
@@ -109,15 +109,12 @@ export class MensajesController {
   @UseGuards(JwtAuthGuard)
   @Put(':id/leido')
   markAsRead(@Param('id') id: string) {
-    const updated = this.mensajesService.markAsRead(id);
-    if (!updated) return { error: 'Not found' };
-    return updated;
+    return this.mensajesService.markAsRead(id);
   }
 
   @UseGuards(JwtAuthGuard)
   @Delete(':id')
   remove(@Param('id') id: string) {
-    const ok = this.mensajesService.remove(id);
-    return { success: ok };
+    return { success: this.mensajesService.remove(id) };
   }
 }

@@ -1,6 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import * as fs from 'fs';
-import * as path from 'path';
+import { join } from 'path';
+import { DATA_DIR, UPLOAD_DIR } from '../utils/paths';
 
 export interface NewsItem {
   id: string;
@@ -13,31 +14,26 @@ export interface NewsItem {
 @Injectable()
 export class NewsService {
   private getFilePath(): string {
-    const projectRoot = (globalThis as any)['projectRoot'] || path.resolve(__dirname, '../..');
-    return path.resolve(projectRoot, 'data/news.json');
+    return join(DATA_DIR, 'news.json');
   }
 
   private ensureFile() {
+    if (!fs.existsSync(DATA_DIR)) {
+      fs.mkdirSync(DATA_DIR, { recursive: true });
+    }
     const filePath = this.getFilePath();
     if (!fs.existsSync(filePath)) {
-      const dir = path.dirname(filePath);
-      if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
-      }
-      fs.writeFileSync(filePath, JSON.stringify([]));
+      fs.writeFileSync(filePath, JSON.stringify([], null, 2));
     }
   }
 
   findAll(): NewsItem[] {
+    this.ensureFile();
     try {
-      this.ensureFile();
-      const filePath = this.getFilePath();
-      const raw = fs.readFileSync(filePath, 'utf8');
+      const raw = fs.readFileSync(this.getFilePath(), 'utf8');
       return JSON.parse(raw);
     } catch (err) {
-      console.error('Error en findAll():', err.message);
-      console.error('NEWS_FILE path:', this.getFilePath());
-      throw err;
+      return [];
     }
   }
 
@@ -63,6 +59,9 @@ export class NewsService {
     const news = this.findAll();
     const idx = news.findIndex(n => n.id === id);
     if (idx === -1) return null;
+
+    // Si viene una imagen nueva y ya había una, podrías borrar la vieja aquí
+    // pero por ahora solo actualizamos los campos
     news[idx] = { ...news[idx], ...data };
     fs.writeFileSync(this.getFilePath(), JSON.stringify(news, null, 2));
     return news[idx];
@@ -72,24 +71,24 @@ export class NewsService {
     const news = this.findAll();
     const idx = news.findIndex(n => n.id === id);
     if (idx === -1) return false;
+
     const item = news[idx];
     
-    // Eliminar imagen local si existe
-    if (item.image && item.image.startsWith('/uploads/')) {
-      // Calcular ruta correcta: ../../../public/uploads/...
-      const uploadsDir = path.resolve((globalThis as any)['projectRoot'] || __dirname, 'public');
-      const fileOnDisk = path.join(uploadsDir, item.image);
-      
-      try {
-        if (fs.existsSync(fileOnDisk)) {
-          fs.unlinkSync(fileOnDisk);
-          console.log(`Imagen eliminada: ${fileOnDisk}`);
+    // Borrado físico de la imagen
+    if (item.image) {
+      const fileName = item.image.split('/').pop(); // Obtenemos solo el nombre del archivo
+      if (fileName) {
+        const fullPath = join(UPLOAD_DIR, fileName);
+        if (fs.existsSync(fullPath)) {
+          try {
+            fs.unlinkSync(fullPath);
+          } catch (e) {
+            console.error('No se pudo borrar físicamente:', fullPath);
+          }
         }
-      } catch (err) {
-        console.error(`Error al eliminar imagen ${fileOnDisk}:`, err.message);
       }
     }
-    
+
     news.splice(idx, 1);
     fs.writeFileSync(this.getFilePath(), JSON.stringify(news, null, 2));
     return true;

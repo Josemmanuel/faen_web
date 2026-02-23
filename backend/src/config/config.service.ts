@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import * as fs from 'fs';
-import * as path from 'path';
+import { join } from 'path';
+import { DATA_DIR } from '../utils/paths';
 
 export interface StudentLink {
   id: string;
@@ -41,48 +42,26 @@ export class ConfigService {
       url: 'https://guarani.unf.edu.ar/preinscripcion/unaf/?__o=',
     },
     studentLinks: [
-      {
-        id: '1',
-        title: 'Autogestión',
-        url: 'https://guarani.unf.edu.ar/autogestion/',
-        icon: '🔐'
-      }
+      { id: '1', title: 'Autogestión', url: 'https://guarani.unf.edu.ar/autogestion/', icon: '🔐' }
     ],
     claustros: [
-      {
-        id: 'estudiantes',
-        name: 'Estudiantes',
-        icon: '👨‍🎓',
-        links: []
-      },
-      {
-        id: 'graduados',
-        name: 'Graduados',
-        icon: '🎓',
-        links: []
-      },
-      {
-        id: 'docentes',
-        name: 'Docentes',
-        icon: '👨‍🏫',
-        links: []
-      },
-      {
-        id: 'no-docentes',
-        name: 'No Docentes',
-        icon: '👨‍💼',
-        links: []
-      }
+      { id: 'estudiantes', name: 'Estudiantes', icon: '👨‍🎓', links: [] },
+      { id: 'graduados', name: 'Graduados', icon: '🎓', links: [] },
+      { id: 'docentes', name: 'Docentes', icon: '👨‍🏫', links: [] },
+      { id: 'no-docentes', name: 'No Docentes', icon: '👨‍💼', links: [] }
     ]
   };
 
   constructor() {
-    const projectRoot = (globalThis as any)['projectRoot'] || process.cwd();
-    this.configFile = path.join(projectRoot, 'data', 'config.json');
+    // Usamos la ruta centralizada definida en paths.ts
+    this.configFile = join(DATA_DIR, 'config.json');
     this.ensureConfigFile();
   }
 
   private ensureConfigFile() {
+    if (!fs.existsSync(DATA_DIR)) {
+      fs.mkdirSync(DATA_DIR, { recursive: true });
+    }
     if (!fs.existsSync(this.configFile)) {
       fs.writeFileSync(this.configFile, JSON.stringify(this.defaultConfig, null, 2));
     }
@@ -105,8 +84,7 @@ export class ConfigService {
   }
 
   getPreinscripcionConfig() {
-    const config = this.getConfig();
-    return config.preinscripcion;
+    return this.getConfig().preinscripcion;
   }
 
   updatePreinscripcionConfig(data: { enabled: boolean; url: string }) {
@@ -120,19 +98,13 @@ export class ConfigService {
   }
 
   getStudentLinks(): StudentLink[] {
-    const config = this.getConfig();
-    return config.studentLinks || [];
+    return this.getConfig().studentLinks || [];
   }
 
   addStudentLink(link: Omit<StudentLink, 'id'>): StudentLink {
     const config = this.getConfig();
-    const newLink: StudentLink = {
-      ...link,
-      id: Date.now().toString(),
-    };
-    if (!config.studentLinks) {
-      config.studentLinks = [];
-    }
+    const newLink: StudentLink = { ...link, id: Date.now().toString() };
+    if (!config.studentLinks) config.studentLinks = [];
     config.studentLinks.push(newLink);
     fs.writeFileSync(this.configFile, JSON.stringify(config, null, 2));
     return newLink;
@@ -140,7 +112,7 @@ export class ConfigService {
 
   updateStudentLink(id: string, link: Partial<StudentLink>): StudentLink | null {
     const config = this.getConfig();
-    const index = config.studentLinks?.findIndex(l => l.id === id) || -1;
+    const index = config.studentLinks?.findIndex(l => l.id === id) ?? -1;
     if (index === -1) return null;
     config.studentLinks![index] = { ...config.studentLinks![index], ...link };
     fs.writeFileSync(this.configFile, JSON.stringify(config, null, 2));
@@ -149,7 +121,7 @@ export class ConfigService {
 
   removeStudentLink(id: string): boolean {
     const config = this.getConfig();
-    const index = config.studentLinks?.findIndex(l => l.id === id) || -1;
+    const index = config.studentLinks?.findIndex(l => l.id === id) ?? -1;
     if (index === -1) return false;
     config.studentLinks!.splice(index, 1);
     fs.writeFileSync(this.configFile, JSON.stringify(config, null, 2));
@@ -157,13 +129,11 @@ export class ConfigService {
   }
 
   getClaustros(): Claustro[] {
-    const config = this.getConfig();
-    return config.claustros || [];
+    return this.getConfig().claustros || [];
   }
 
   getClaustroById(id: string): Claustro | null {
-    const config = this.getConfig();
-    return config.claustros?.find(c => c.id === id) || null;
+    return this.getConfig().claustros?.find(c => c.id === id) || null;
   }
 
   addLinkToClaustro(claustroId: string, link: Omit<ClaustroLink, 'id'>): ClaustroLink | null {
@@ -171,10 +141,7 @@ export class ConfigService {
     const claustro = config.claustros?.find(c => c.id === claustroId);
     if (!claustro) return null;
 
-    const newLink: ClaustroLink = {
-      ...link,
-      id: Date.now().toString(),
-    };
+    const newLink: ClaustroLink = { ...link, id: Date.now().toString() };
     claustro.links.push(newLink);
     fs.writeFileSync(this.configFile, JSON.stringify(config, null, 2));
     return newLink;

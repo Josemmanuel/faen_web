@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import * as fs from 'fs';
 import * as path from 'path';
+// Importamos las rutas centralizadas que ya tienes
+import { UPLOAD_DIR, DATA_DIR } from '../utils/paths';
 
 export interface AutoridadItem {
   id: string;
@@ -11,33 +13,31 @@ export interface AutoridadItem {
   foto?: string;
 }
 
-
 @Injectable()
 export class AutoridadesService {
   private getFilePath(): string {
-    const projectRoot = (globalThis as any)['projectRoot'] || path.resolve(__dirname, '../..');
-    return path.resolve(projectRoot, 'data/autoridades.json');
+    // Usamos DATA_DIR que ya está configurado en paths.ts
+    return path.join(DATA_DIR, 'autoridades.json');
   }
 
   private ensureFile() {
     const filePath = this.getFilePath();
+    const dir = path.dirname(filePath);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
     if (!fs.existsSync(filePath)) {
-      const dir = path.dirname(filePath);
-      if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
-      }
-      fs.writeFileSync(filePath, JSON.stringify([]));
+      fs.writeFileSync(filePath, JSON.stringify([], null, 2));
     }
   }
 
   findAll(): AutoridadItem[] {
+    this.ensureFile();
     try {
-      this.ensureFile();
       const raw = fs.readFileSync(this.getFilePath(), 'utf8');
-      return JSON.parse(raw);
+      return JSON.parse(raw || '[]');
     } catch (err) {
-      console.error('Error en findAll():', err.message);
-      throw err;
+      return [];
     }
   }
 
@@ -46,61 +46,65 @@ export class AutoridadesService {
   }
 
   create(data: Partial<AutoridadItem>): AutoridadItem {
-    try {
-      console.log('=== CREATE AUTORIDAD ===');
-      console.log('Datos recibidos:', data);
-      console.log('data.nombre:', data.nombre, 'tipo:', typeof data.nombre, 'length:', data.nombre?.length);
-      console.log('data.cargo:', data.cargo, 'tipo:', typeof data.cargo, 'length:', data.cargo?.length);
-      
-      if (!data.nombre || data.nombre.trim() === '') {
-        throw new Error('Nombre es requerido y no puede estar vacío');
-      }
-      if (!data.cargo || data.cargo.trim() === '') {
-        throw new Error('Cargo es requerido y no puede estar vacío');
-      }
-      
-      const autoridades = this.findAll();
-      const item: AutoridadItem = {
-        id: Date.now().toString(),
-        nombre: data.nombre.trim(),
-        cargo: data.cargo.trim(),
-      };
-      
-      // Solo agregar campos opcionales si existen
-      if (data.email && data.email.trim()) item.email = data.email.trim();
-      if (data.telefono && data.telefono.trim()) item.telefono = data.telefono.trim();
-      if (data.foto && data.foto.trim()) item.foto = data.foto;
-      
-      console.log('Item a guardar:', item);
-      const filePath = this.getFilePath();
-      console.log('Guardando en:', filePath);
-      
-      autoridades.push(item);
-      fs.writeFileSync(filePath, JSON.stringify(autoridades, null, 2));
-      console.log('Autoridad guardada exitosamente');
-      console.log('Total autoridades:', autoridades.length);
-      return item;
-    } catch (err) {
-      console.error('Error en create():', err);
-      throw err;
-    }
+    const autoridades = this.findAll();
+    
+    const item: AutoridadItem = {
+      id: Date.now().toString(),
+      nombre: (data.nombre || 'Sin nombre').trim(),
+      cargo: (data.cargo || 'Sin cargo').trim(),
+      email: data.email?.trim() || '',
+      telefono: data.telefono?.trim() || '',
+      // Si data.foto viene vacío, ponemos el default
+      foto: data.foto || '/uploads/default-avatar.png',
+      fechaCreacion: new Date().toLocaleString()
+    } as any;
+    
+    autoridades.push(item);
+    this.saveToFile(autoridades);
+    return item;
   }
 
   update(id: string, data: Partial<AutoridadItem>): AutoridadItem | null {
     const autoridades = this.findAll();
     const idx = autoridades.findIndex(a => a.id === id);
     if (idx === -1) return null;
+
+    // Si se actualiza la foto, el controlador debe pasar la ruta completa (/uploads/...)
     autoridades[idx] = { ...autoridades[idx], ...data };
-    fs.writeFileSync(this.getFilePath(), JSON.stringify(autoridades, null, 2));
+    this.saveToFile(autoridades);
     return autoridades[idx];
   }
 
-  remove(id: string): boolean {
+  async remove(id: string): Promise<boolean> {
     const autoridades = this.findAll();
     const idx = autoridades.findIndex(a => a.id === id);
     if (idx === -1) return false;
+
+    const autoridad = autoridades[idx];
+
+    // Borrado físico de la foto
+    if (autoridad.foto && !autoridad.foto.includes('default-avatar.png')) {
+      try {
+        // Obtenemos el nombre del archivo quitando el "/uploads/"
+        // Si la foto es "/uploads/foto.jpg", nos queda "foto.jpg"
+        const fileName = autoridad.foto.replace('/uploads/', '');
+        const fotoPath = path.join(UPLOAD_DIR, fileName);
+        
+        if (fs.existsSync(fotoPath)) {
+          fs.unlinkSync(fotoPath);
+          console.log('Foto de autoridad eliminada:', fotoPath);
+        }
+      } catch (err) {
+        console.warn('No se pudo borrar la foto física:', err.message);
+      }
+    }
+
     autoridades.splice(idx, 1);
-    fs.writeFileSync(this.getFilePath(), JSON.stringify(autoridades, null, 2));
+    this.saveToFile(autoridades);
     return true;
+  }
+
+  private saveToFile(data: AutoridadItem[]) {
+    fs.writeFileSync(this.getFilePath(), JSON.stringify(data, null, 2));
   }
 }

@@ -24,6 +24,7 @@ export class CreateCarreraDto {
 
   @IsOptional()
   @IsNumber({}, { message: 'La duración debe ser un número' })
+  // El FormData envía todo como string, esto asegura la conversión a número
   @Transform(({ value }) => value ? parseInt(value, 10) : 1)
   @Min(1, { message: 'La duración debe ser al menos 1' })
   duration?: number;
@@ -33,11 +34,17 @@ export class CreateCarreraDto {
   @Transform(({ value }) => typeof value === 'string' ? value.trim() : value)
   category?: string;
 
+  /**
+   * IMPORTANTE:
+   * Cambiamos el mensaje de validación. 
+   * Ya no recibimos Base64, sino que el controlador asignará 
+   * la ruta del archivo (string) después de que Multer lo procese.
+   */
   @IsOptional()
-  @IsString({ message: 'La foto debe ser una cadena base64' })
+  @IsString({ message: 'La ruta de la foto debe ser un texto' })
   foto?: string;
 
   @IsOptional()
-  @IsString({ message: 'El documento debe ser una cadena base64' })
+  @IsString({ message: 'La ruta del documento debe ser un texto' })
   documento?: string;
 }

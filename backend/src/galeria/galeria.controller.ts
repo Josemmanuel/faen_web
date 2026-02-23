@@ -1,84 +1,50 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Delete,
-  Param,
-  UseInterceptors,
-  UploadedFile,
-  BadRequestException,
-  UseGuards,
-  Body,
+import { 
+  Controller, 
+  Get, 
+  Post, 
+  Delete, 
+  Param, 
+  UseInterceptors, 
+  UploadedFile, 
+  UseGuards, 
+  Body, // 👈 AGREGA ESTO AQUÍ
+  BadRequestException 
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
-import { Express } from 'express';
-import * as path from 'path';
-import { GaleriaService, Foto } from './galeria.service';
+import { GaleriaService } from './galeria.service';
 import { JwtAuthGuard } from '../auth/jwt.guard';
+import { multerConfig } from '../utils/paths'; // Usamos la configuración centralizada
 
 @Controller('api/galeria')
 export class GaleriaController {
-  constructor(private galeriaService: GaleriaService) {}
+  constructor(private readonly galeriaService: GaleriaService) {}
 
   @Get()
-  async getAllFotos(): Promise<Foto[]> {
-    return this.galeriaService.getAllFotos();
+  findAll() {
+    return this.galeriaService.findAll();
   }
 
-  @Post('subir')
   @UseGuards(JwtAuthGuard)
-  @UseInterceptors(
-    FileInterceptor('foto', {
-      storage: diskStorage({
-        destination: (req, file, cb) => {
-          cb(
-            null,
-            '/home/josemanuel/Documentos/faen_web/public/uploads'
-          );
-        },
-        filename: (req, file, cb) => {
-          const timestamp = Date.now();
-          const ext = path.extname(file.originalname);
-          const name = path.basename(file.originalname, ext);
-          cb(null, `${timestamp}-${name}${ext}`);
-        },
-      }),
-      fileFilter: (req, file, cb) => {
-        const allowedMimes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-        if (!allowedMimes.includes(file.mimetype)) {
-          return cb(
-            new BadRequestException('Solo se permiten imágenes (JPEG, PNG, WebP, GIF)'),
-            false
-          );
-        }
-        cb(null, true);
-      },
-      limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
-    })
-  )
-  async uploadFoto(
-    @UploadedFile() file: Express.Multer.File,
-    @Body('titulo') titulo?: string,
-  ): Promise<Foto> {
+  @Post('upload')
+  @UseInterceptors(FileInterceptor('image', multerConfig)) 
+  async upload(@UploadedFile() file: any, @Body() body: any) { // 👈 Agregamos @Body() body
     if (!file) {
-      throw new BadRequestException('No se subió ninguna imagen');
+      throw new BadRequestException('No se ha subido ninguna imagen');
     }
 
-    const foto: Foto = {
-      id: Date.now().toString(),
-      titulo: titulo && titulo.trim() ? titulo.trim() : 'Sin título',
-      ruta: `uploads/${file.filename}`,
-      fecha: new Date().toLocaleString('es-ES'),
-    };
+    // 1. Capturamos el título del body que envía el FormData
+    const titulo = body.titulo || 'Sin título'; 
 
-    return this.galeriaService.addFoto(foto);
+    // 2. Agregamos la barra '/' inicial para que el navegador la encuentre desde cualquier URL
+    const imagePath = `/uploads/${file.filename}`; 
+
+    // 3. Pasamos ambos datos al servicio
+    return this.galeriaService.create(imagePath, titulo);
   }
 
-  @Delete(':id')
   @UseGuards(JwtAuthGuard)
-  async deleteFoto(@Param('id') id: string): Promise<{ message: string }> {
-    await this.galeriaService.deleteFoto(id);
-    return { message: 'Foto eliminada correctamente' };
+  @Delete(':id')
+  remove(@Param('id') id: string) {
+    return this.galeriaService.remove(id);
   }
 }

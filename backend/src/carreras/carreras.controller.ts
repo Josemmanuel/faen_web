@@ -1,8 +1,13 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, UseGuards } from '@nestjs/common';
+import { 
+  Body, Controller, Delete, Get, Param, Post, Put, 
+  UseGuards, UseInterceptors, UploadedFiles, NotFoundException 
+} from '@nestjs/common';
+import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { CarrerasService } from './carreras.service';
 import { CreateCarreraDto } from './dto/create-carrera.dto';
-import { UpdateCarreraDto } from './dto/update-carrera.dto';
+import { UpdateCarreraDto } from './dto/update-carrera.dto'; // Asegúrate de que este archivo exista
 import { JwtAuthGuard } from '../auth/jwt.guard';
+import { multerConfig } from '../utils/paths';
 
 @Controller('api/carreras')
 export class CarrerasController {
@@ -14,34 +19,66 @@ export class CarrerasController {
   }
 
   @Get(':id')
+  // Eliminamos el 'async' si tu service no es una Promesa, 
+  // o lo dejamos si lo es. Aquí lo ajustamos al Service que pasaste:
   findOne(@Param('id') id: string) {
-    return this.carrerasService.findOne(id);
+    const carrera = this.carrerasService.findOne(id);
+    if (!carrera) throw new NotFoundException('Carrera no encontrada');
+    return carrera;
   }
 
   @UseGuards(JwtAuthGuard)
   @Post()
-  create(@Body() dto: CreateCarreraDto) {
-    console.log('=== POST /api/carreras ===');
-    console.log('DTO recibido:', dto);
-    console.log('DTO.title:', dto.title, 'tipo:', typeof dto.title);
-    console.log('DTO.code:', dto.code, 'tipo:', typeof dto.code);
-    console.log('DTO.description:', dto.description, 'tipo:', typeof dto.description);
-    console.log('DTO.duration:', dto.duration, 'tipo:', typeof dto.duration);
-    return this.carrerasService.create(dto);
+  @UseInterceptors(FileFieldsInterceptor([
+    { name: 'foto', maxCount: 1 },
+    { name: 'documento', maxCount: 1 }
+  ], multerConfig))
+  create(
+    @Body() dto: CreateCarreraDto, 
+    @UploadedFiles() files: { foto?: Express.Multer.File[], documento?: Express.Multer.File[] }
+  ) {
+    const data = {
+      ...dto,
+      foto: files?.foto?.[0] ? `uploads/${files.foto[0].filename}` : 'uploads/default-carrera.png',
+      documento: files?.documento?.[0] ? `uploads/${files.documento[0].filename}` : null
+    };
+    return this.carrerasService.create(data);
   }
 
   @UseGuards(JwtAuthGuard)
   @Put(':id')
-  update(@Param('id') id: string, @Body() dto: UpdateCarreraDto) {
-    const updated = this.carrerasService.update(id, dto);
-    if (!updated) return { error: 'Not found' };
+  @UseInterceptors(FileFieldsInterceptor([
+    { name: 'foto', maxCount: 1 },
+    { name: 'documento', maxCount: 1 }
+  ], multerConfig))
+  update(
+    @Param('id') id: string, 
+    @Body() dto: UpdateCarreraDto, 
+    @UploadedFiles() files: { foto?: Express.Multer.File[], documento?: Express.Multer.File[] }
+  ) {
+    // Creamos un objeto con los datos que vienen del Body
+    const updateData: any = { ...dto };
+    
+    // Si hay archivos nuevos, añadimos la ruta al objeto de actualización
+    if (files?.foto?.[0]) {
+      updateData.foto = `uploads/${files.foto[0].filename}`;
+    }
+
+    if (files?.documento?.[0]) {
+      updateData.documento = `uploads/${files.documento[0].filename}`;
+    }
+
+    const updated = this.carrerasService.update(id, updateData);
+    if (!updated) throw new NotFoundException('Carrera no encontrada');
+    
     return updated;
   }
 
   @UseGuards(JwtAuthGuard)
   @Delete(':id')
   remove(@Param('id') id: string) {
-    const ok = this.carrerasService.remove(id);
-    return { success: ok };
+    const deleted = this.carrerasService.remove(id);
+    if (!deleted) throw new NotFoundException('No se pudo eliminar la carrera');
+    return { success: true };
   }
 }

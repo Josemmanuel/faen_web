@@ -11,6 +11,7 @@
     "@nestjs/common": "^9.0.0",
     "@nestjs/core": "^9.0.0",
     "@nestjs/jwt": "^9.0.0",
+    "@nestjs/mapped-types": "^2.1.0",
     "@nestjs/passport": "^9.0.3",
     "@nestjs/platform-express": "^9.0.0",
     "@nestjs/serve-static": "^5.0.4",
@@ -25,12 +26,14 @@
     "multer": "^2.0.2",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
+    "path-to-regexp": "^8.3.0",
     "reflect-metadata": "^0.1.13",
     "rxjs": "^7.8.1"
   },
   "devDependencies": {
     "@nestjs/cli": "^9.0.0",
     "@types/cookie-parser": "^1.4.10",
+    "@types/multer": "^2.0.0",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.1.6"
   }

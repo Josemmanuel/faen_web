@@ -1,39 +1,10 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Put, UploadedFile, UseGuards, UseInterceptors, BadRequestException } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
-import { Express } from 'express';
-import { join, resolve } from 'path';
-import { existsSync, mkdirSync } from 'fs';
 import { NewsService } from './news.service';
 import { CreateNewsDto } from './dto/create-news.dto';
 import { UpdateNewsDto } from './dto/update-news.dto';
 import { JwtAuthGuard } from '../auth/jwt.guard';
-
-function getUploadsDir() {
-  // Use the global projectRoot that was set in main.ts
-  const projectRoot = (globalThis as any)['projectRoot'] || resolve(__dirname, '../../..');
-  const uploadsPath = resolve(projectRoot, 'public', 'uploads');
-  console.log('📁 getUploadsDir() resolved to:', uploadsPath);
-  console.log('📁 projectRoot is:', projectRoot);
-  if (!existsSync(uploadsPath)) {
-    console.log('📁 Creating uploads directory:', uploadsPath);
-    mkdirSync(uploadsPath, { recursive: true });
-  }
-  return uploadsPath;
-}
-
-const multerConfig = {
-  storage: diskStorage({
-    destination: (req, file, cb) => {
-      cb(null, getUploadsDir());
-    },
-    filename: (req, file, cb) => {
-      const uniqueName = Date.now() + '-' + file.originalname;
-      console.log('Multer saving file as:', uniqueName);
-      cb(null, uniqueName);
-    },
-  }),
-};
+import { multerConfig } from '../utils/paths';
 
 @Controller('api/news')
 export class NewsController {
@@ -46,27 +17,34 @@ export class NewsController {
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.newsService.findOne(id);
+    const news = this.newsService.findOne(id);
+    if (!news) throw new BadRequestException('Noticia no encontrada');
+    return news;
   }
 
   @UseGuards(JwtAuthGuard)
   @Post()
-  @UseInterceptors(FileInterceptor('image', multerConfig))
-  create(@Body() dto: CreateNewsDto, @UploadedFile() file: Express.Multer.File) {
-    console.log('File received:', file);
-    const imagePath = file ? '/uploads/' + file.filename : null;
-    console.log('Image path:', imagePath);
+  @UseInterceptors(FileInterceptor('image', multerConfig)) // <-- Verifica que el frontend use 'image'
+  async create(@Body() dto: CreateNewsDto, @UploadedFile() file: any) {
+    console.log('--- Nueva Noticia ---');
+    console.log('Datos:', dto);
+    console.log('Archivo recibido:', file ? file.filename : 'Ninguno');
+
+    const imagePath = file ? `uploads/${file.filename}` : null;
     return this.newsService.create({ ...dto, image: imagePath });
   }
 
   @UseGuards(JwtAuthGuard)
   @Put(':id')
   @UseInterceptors(FileInterceptor('image', multerConfig))
-  update(@Param('id') id: string, @Body() dto: UpdateNewsDto, @UploadedFile() file: Express.Multer.File) {
-    const imagePath = file ? '/uploads/' + file.filename : undefined;
+  async update(@Param('id') id: string, @Body() dto: UpdateNewsDto, @UploadedFile() file: any) {
+    const imagePath = file ? `uploads/${file.filename}` : undefined;
+    
+    // Si no hay archivo nuevo, mantenemos el anterior o enviamos undefined para que el service no lo toque
     const data = imagePath !== undefined ? { ...dto, image: imagePath } : dto;
+    
     const updated = this.newsService.update(id, data as any);
-    if (!updated) return { error: 'Not found' };
+    if (!updated) throw new BadRequestException('No se pudo actualizar la noticia');
     return updated;
   }
 

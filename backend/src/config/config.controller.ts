@@ -11,6 +11,7 @@ export class ConfigController {
     return this.configService.getConfig();
   }
 
+  @UseGuards(JwtAuthGuard)
   @Put()
   updateConfig(@Body() config: any) {
     return this.configService.updateConfig(config);
@@ -21,6 +22,7 @@ export class ConfigController {
     return this.configService.getPreinscripcionConfig();
   }
 
+  @UseGuards(JwtAuthGuard)
   @Put('preinscripcion')
   updatePreinscripcionConfig(@Body() data: { enabled: boolean; url: string }) {
     return this.configService.updatePreinscripcionConfig(data);
@@ -39,7 +41,7 @@ export class ConfigController {
 
   @UseGuards(JwtAuthGuard)
   @Put('student-links/:id')
-  updateStudentLink(@Param('id') id: string, @Body() data: Partial<{ title: string; url: string; icon: string }>) {
+  updateStudentLink(@Param('id') id: string, @Body() data: any) {
     return this.configService.updateStudentLink(id, data);
   }
 
@@ -70,7 +72,7 @@ export class ConfigController {
   updateClaustroLink(
     @Param('id') claustroId: string,
     @Param('linkId') linkId: string,
-    @Body() data: Partial<{ title: string; url: string; icon: string }>
+    @Body() data: any
   ) {
     return this.configService.updateClaustroLink(claustroId, linkId, data);
   }

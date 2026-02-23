@@ -1,48 +1,46 @@
 import { Injectable } from '@nestjs/common';
 import * as fs from 'fs';
-import * as path from 'path';
+import { join } from 'path';
+import { DATA_DIR, UPLOAD_DIR } from '../utils/paths';
 
 export interface DocumentItem {
   id: string;
   title: string;
   description?: string;
-  category: string; // "constancias", "notas", "guias", etc
+  category: string;
   fileName: string;
   filePath: string;
   uploadedAt: string;
 }
 
-// Calcular la ruta correcta del archivo documents.json
 @Injectable()
 export class DocumentsService {
+  
   private getFilePath(): string {
-    const projectRoot = (globalThis as any)['projectRoot'] || path.resolve(__dirname, '../..');
-    return path.resolve(projectRoot, 'data/documents.json');
+    return join(DATA_DIR, 'documents.json');
   }
 
   private ensureFile() {
+    if (!fs.existsSync(DATA_DIR)) {
+      fs.mkdirSync(DATA_DIR, { recursive: true });
+    }
     const filePath = this.getFilePath();
     if (!fs.existsSync(filePath)) {
-      const dir = path.dirname(filePath);
-      if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
-      }
-      fs.writeFileSync(filePath, JSON.stringify([]));
+      fs.writeFileSync(filePath, JSON.stringify([], null, 2));
     }
   }
 
   findAll(): DocumentItem[] {
-    try {
-      this.ensureFile();
-      const filePath = this.getFilePath();
-      const raw = fs.readFileSync(filePath, 'utf8');
-      return JSON.parse(raw);
-    } catch (err) {
-      console.error('Error en findAll():', err.message);
-      console.error('DOCUMENTS_FILE path:', this.getFilePath());
-      throw err;
-    }
+  this.ensureFile();
+  try {
+    const raw = fs.readFileSync(this.getFilePath(), 'utf8');
+    if (!raw.trim()) return []; // Si está vacío devuelve array
+    return JSON.parse(raw);
+  } catch (err) {
+    console.error('Error en DocumentsService:', err);
+    return []; // 👈 Importante: devuelve [] ante cualquier error para no romper el controlador
   }
+}
 
   findByCategory(category: string): DocumentItem[] {
     return this.findAll().filter(d => d.category === category);
@@ -64,7 +62,7 @@ export class DocumentsService {
       uploadedAt: new Date().toISOString(),
     };
     documents.push(item);
-    fs.writeFileSync(this.getFilePath(), JSON.stringify(documents, null, 2));
+    this.saveToFile(documents);
     return item;
   }
 
@@ -73,8 +71,12 @@ export class DocumentsService {
     const idx = documents.findIndex(d => d.id === id);
     if (idx === -1) return null;
     documents[idx] = { ...documents[idx], ...data };
-    fs.writeFileSync(this.getFilePath(), JSON.stringify(documents, null, 2));
+    this.saveToFile(documents);
     return documents[idx];
+  }
+
+  private saveToFile(data: DocumentItem[]) {
+    fs.writeFileSync(this.getFilePath(), JSON.stringify(data, null, 2));
   }
 
   remove(id: string): boolean {
@@ -83,23 +85,20 @@ export class DocumentsService {
     if (idx === -1) return false;
     const item = documents[idx];
 
-    // Eliminar archivo PDF local si existe
     if (item.filePath) {
-      const uploadsDir = path.resolve((globalThis as any)['projectRoot'] || __dirname, 'public');
-      const fileOnDisk = path.join(uploadsDir, item.filePath);
-
+      const fileName = item.filePath.replace('uploads/', '').replace(/^\//, '');
+      const fileOnDisk = join(UPLOAD_DIR, fileName);
       try {
         if (fs.existsSync(fileOnDisk)) {
           fs.unlinkSync(fileOnDisk);
-          console.log(`Documento eliminado: ${fileOnDisk}`);
         }
       } catch (err) {
-        console.error(`Error al eliminar documento ${fileOnDisk}:`, err.message);
+        console.error(`Error al eliminar PDF físico:`, err.message);
       }
     }
 
     documents.splice(idx, 1);
-    fs.writeFileSync(this.getFilePath(), JSON.stringify(documents, null, 2));
+    this.saveToFile(documents);
     return true;
   }
 }

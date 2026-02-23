@@ -10,6 +10,7 @@ export class CreateAutoridadDto {
   cargo: string;
 
   @IsOptional()
+  // Si el email llega vacío desde el form, esto evita que IsEmail falle
   @IsEmail()
   email?: string;
 
@@ -19,5 +20,6 @@ export class CreateAutoridadDto {
 
   @IsOptional()
   @IsString()
+  // Permitimos que sea opcional para que no rebote si la imagen no se sube
   foto?: string;
 }

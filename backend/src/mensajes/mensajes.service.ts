@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import * as fs from 'fs';
-import * as path from 'path';
+import { join } from 'path';
+import { DATA_DIR } from '../utils/paths';
 
 export interface MensajeItem {
   id: string;
@@ -9,25 +10,24 @@ export interface MensajeItem {
   telefono?: string;
   asunto: string;
   mensaje: string;
-  fecha: string;          // human readable (no cambiar para compatibilidad UI)
-  fechaISO?: number;      // timestamp usado para filtrado/orden (nuevo)
+  fecha: string;          // human readable
+  fechaISO?: number;      // timestamp
   leido?: boolean;
 }
 
 @Injectable()
 export class MensajesService {
+  
   private getFilePath(): string {
-    const projectRoot = (globalThis as any)['projectRoot'] || path.resolve(__dirname, '../..');
-    return path.resolve(projectRoot, 'data/mensajes.json');
+    return join(DATA_DIR, 'mensajes.json');
   }
 
   private ensureFile() {
+    if (!fs.existsSync(DATA_DIR)) {
+      fs.mkdirSync(DATA_DIR, { recursive: true });
+    }
     const filePath = this.getFilePath();
     if (!fs.existsSync(filePath)) {
-      const dir = path.dirname(filePath);
-      if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
-      }
       fs.writeFileSync(filePath, JSON.stringify([]));
     }
   }
@@ -35,12 +35,11 @@ export class MensajesService {
   findAll(): MensajeItem[] {
     try {
       this.ensureFile();
-      const filePath = this.getFilePath();
-      const raw = fs.readFileSync(filePath, 'utf8');
+      const raw = fs.readFileSync(this.getFilePath(), 'utf8');
       return JSON.parse(raw);
     } catch (err) {
-      console.error('Error en findAll():', err.message);
-      throw err;
+      console.error('Error en findAll() de Mensajes:', err.message);
+      return [];
     }
   }
 
