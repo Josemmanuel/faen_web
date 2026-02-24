@@ -12,18 +12,17 @@ export class AuthController {
   async login(@Body() dto: LoginDto, @Res({ passthrough: true }) res: Response) {
     const result = await this.authService.login(dto);
 
-    // Setear cookie httpOnly además de devolver el token en el body
     res.cookie('jwt', result.access_token, {
       httpOnly: true,
-      secure: false,       // cambiar a true en producción con HTTPS
+      secure: false,
       sameSite: 'lax',
-      maxAge: 1000 * 60 * 60 * 8,  // 8 horas
+      maxAge: 1000 * 60 * 60 * 8, // 8 horas
     });
 
     return result;
   }
 
-  // ⚠️  Sin @UseGuards — el logout debe funcionar aunque el token ya haya expirado
+  // Sin @UseGuards — debe funcionar aunque el token haya expirado
   @Post('logout')
   async logout(@Res({ passthrough: true }) res: Response) {
     res.clearCookie('jwt', { httpOnly: true, sameSite: 'lax', secure: false });

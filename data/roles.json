@@ -34,13 +34,13 @@
     "name": "moderador",
     "description": "Moderador de mensajes y comentarios",
     "default_permissions": {
-      "noticias": "read",
-      "autoridades": "read",
-      "carreras": "read",
-      "documentos": "read",
-      "galeria": "read",
+      "noticias": "none",
+      "autoridades": "create",
+      "carreras": "none",
+      "documentos": "create",
+      "galeria": "create",
       "mensajes": "create",
-      "config": "read",
+      "config": "none",
       "usuarios": "none"
     }
   },

@@ -88,38 +88,7 @@ function startSessionTimer() {
 }
 
 function updateSessionTimer(elapsed) {
-    const remaining = Math.max(0, Math.floor((SESSION_TIMEOUT - elapsed) / 1000));
-    const minutes = Math.floor(remaining / 60);
-    const seconds = remaining % 60;
-
-    let timerDisplay = document.getElementById('session-timer');
-    if (!timerDisplay) {
-        timerDisplay = document.createElement('div');
-        timerDisplay.id = 'session-timer';
-        timerDisplay.style.position = 'absolute';
-        timerDisplay.style.bottom = '10px';
-        timerDisplay.style.right = '20px';
-        timerDisplay.style.fontSize = '12px';
-        timerDisplay.style.color = '#666';
-        timerDisplay.style.backgroundColor = '#fffbcc';
-        timerDisplay.style.padding = '5px 10px';
-        timerDisplay.style.borderRadius = '4px';
-        timerDisplay.style.border = '1px solid #f0ad4e';
-
-        const header = document.querySelector('header');
-        if (header) {
-            header.style.position = 'relative';
-            header.appendChild(timerDisplay);
-        }
-    }
-
-    timerDisplay.textContent = 'Sesión expira en: ' + minutes + ':' + (seconds < 10 ? '0' : '') + seconds;
-
-    if (remaining < 60) {
-        timerDisplay.style.color = '#d32f2f';
-        timerDisplay.style.backgroundColor = '#ffebee';
-        timerDisplay.style.borderColor = '#d32f2f';
-    }
+    // Timer silencioso — sin mostrar nada en pantalla
 }
 
 function logoutSession() {
@@ -127,8 +96,7 @@ function logoutSession() {
     sessionStorage.removeItem('admin_pass');
     sessionStorage.removeItem('admin_authenticated');
     sessionStorage.removeItem('admin_last_activity');
-    alert('Tu sesión ha expirado. Por favor, vuelve a ingresar.');
-    window.location.href = 'index.html';
+    window.location.replace('/login.html?expired=true');  // ← sin alert, redirige al login
 }
 
 function showLoginModal() {
@@ -1334,7 +1302,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     startSessionTimer();
-    createLogoutButton();
+
 
     document.addEventListener('click', updateSessionActivity);
     document.addEventListener('keypress', updateSessionActivity);

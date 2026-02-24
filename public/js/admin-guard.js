@@ -1,22 +1,24 @@
 /**
  * Admin Guard - Validación inmediata de acceso a admin.html
- * Se ejecuta antes de que se cargue cualquier contenido
+ * Se ejecuta antes de que se cargue cualquier contenido.
+ * 
+ * Lógica de acceso:
+ * - Admin/superadmin → acceso total
+ * - Otros roles → acceso si tienen al menos un permiso distinto de 'none'
+ * - Sin token o sin permisos → redirige a login
  */
-(function() {
-  // Ejecutar inmediatamente - no esperar DOMContentLoaded
+(function () {
   const TOKEN_KEY = 'faen_auth_token';
-  const USER_KEY = 'faen_auth_user';
+  const USER_KEY  = 'faen_auth_user';
 
-  const token = localStorage.getItem(TOKEN_KEY);
+  const token   = localStorage.getItem(TOKEN_KEY);
   const userStr = localStorage.getItem(USER_KEY);
 
-  console.log('[Admin Guard] Verificando acceso a admin.html');
-  console.log('[Admin Guard] Token existe:', !!token);
-  console.log('[Admin Guard] User existe:', !!userStr);
+  console.log('[Admin Guard] Verificando acceso...');
 
-  // Si no hay token o no hay user, redirigir a login
+  // 1. Sin token o sin usuario → login
   if (!token || !userStr) {
-    console.log('[Admin Guard] ❌ Sin token o usuario - redirigiendo a login');
+    console.log('[Admin Guard] ❌ Sin sesión - redirigiendo a login');
     window.location.replace('/login.html?redirect=admin');
     return;
   }
@@ -24,65 +26,64 @@
   try {
     const user = JSON.parse(userStr);
 
-    // Validar que sea admin o superadmin
+    // 2. Usuario malformado → login
     if (!user || !user.role) {
-      // Usuario malformado
-      console.log('[Admin Guard] ❌ Usuario malformado - limpiando y redirigiendo');
+      console.log('[Admin Guard] ❌ Usuario malformado');
       localStorage.removeItem(TOKEN_KEY);
       localStorage.removeItem(USER_KEY);
       window.location.replace('/login.html?redirect=admin');
       return;
     }
 
-    if (user.role !== 'admin' && user.role !== 'superadmin') {
-      // Usuario no tiene permisos de admin
-      console.log('[Admin Guard] ❌ Usuario no es admin (rol:', user.role + ') - redirigiendo a home');
-      window.location.replace('/index.html?error=access_denied');
-      return;
-    }
-
-    // Validar que el token sea un JWT válido (formato básico)
+    // 3. Validar formato JWT (3 partes separadas por punto)
     const tokenParts = token.split('.');
     if (tokenParts.length !== 3) {
-      console.log('[Admin Guard] ❌ Token JWT inválido - limpiando y redirigiendo');
+      console.log('[Admin Guard] ❌ Token inválido');
       localStorage.removeItem(TOKEN_KEY);
       localStorage.removeItem(USER_KEY);
       window.location.replace('/login.html?redirect=admin');
       return;
     }
 
-    // Validar expiración del token JWT
+    // 4. Validar expiración del token
     try {
-      // El payload es la segunda parte del JWT, codificada en base64
-      const payload = JSON.parse(atob(tokenParts[1]));
-      const expirationTime = payload.exp * 1000; // Convertir a milisegundos
-      const currentTime = Date.now();
-
-      if (expirationTime < currentTime) {
-        console.log('[Admin Guard] ❌ Token expirado - limpiando y redirigiendo');
+      const payload        = JSON.parse(atob(tokenParts[1]));
+      const expirationTime = payload.exp * 1000;
+      if (expirationTime < Date.now()) {
+        console.log('[Admin Guard] ❌ Token expirado');
         localStorage.removeItem(TOKEN_KEY);
         localStorage.removeItem(USER_KEY);
         window.location.replace('/login.html?expired=true');
         return;
       }
-
-      const timeUntilExpiration = Math.floor((expirationTime - currentTime) / 1000);
-      console.log('[Admin Guard] ✅ Token válido por', timeUntilExpiration, 'segundos');
+      const segundosRestantes = Math.floor((expirationTime - Date.now()) / 1000);
+      console.log('[Admin Guard] ✅ Token válido por', segundosRestantes, 'segundos');
     } catch (e) {
-      console.log('[Admin Guard] ⚠️ No se pudo validar expiración del token:', e.message);
-      // Continuar de todas formas - el backend validará en la próxima llamada
+      console.warn('[Admin Guard] ⚠️ No se pudo leer expiración del token');
     }
 
-    console.log('[Admin Guard] ✅ Usuario admin válido:', user.username, '- acceso permitido');
-    // Si llegamos aquí, el usuario tiene acceso - continuar cargando la página
+    // 5. Admin/superadmin → acceso total sin más validación
+    if (user.role === 'admin' || user.role === 'superadmin') {
+      console.log('[Admin Guard] ✅ Admin confirmado:', user.username);
+      return;
+    }
+
+    // 6. Otros roles → necesitan al menos un permiso distinto de 'none'
+    const permisos = user.permissions || {};
+    const tieneAlgunPermiso = Object.values(permisos).some(p => p !== 'none');
+
+    if (!tieneAlgunPermiso) {
+      console.log('[Admin Guard] ❌ Usuario sin permisos:', user.username, '- redirigiendo');
+      window.location.replace('/index.html?error=access_denied');
+      return;
+    }
+
+    console.log('[Admin Guard] ✅ Acceso permitido:', user.username, '(rol:', user.role + ')');
+
   } catch (e) {
-    // Error al parsear JSON del usuario
     console.error('[Admin Guard] ❌ Error de validación:', e);
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
     window.location.replace('/login.html');
-    return;
   }
 })();
-
-

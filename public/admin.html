@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Panel de Administración</title>
     <link rel="stylesheet" href="css/styles.css">
-    <!-- Admin Guard - Validación de acceso inmediata -->
     <script src="js/admin-guard.js"></script>
 </head>
 <body>
@@ -16,41 +15,59 @@
             <p class="subtitle">Gestiona tu sitio web</p>
             <button class="menu-toggle-admin" id="menu-toggle-admin">☰</button>
         </div>
+        <!-- Info usuario + logout — se puebla en DOMContentLoaded -->
+        <div id="header-user-info" style="position:absolute;right:20px;top:0;height:100%;display:flex;align-items:center;gap:12px;">
+            <div style="text-align:right;line-height:1.3;">
+                <div style="font-weight:600;color:white;font-size:0.95rem;" id="header-username">—</div>
+                <div style="font-size:0.75rem;color:rgba(255,255,255,0.75);" id="header-userrole"></div>
+            </div>
+            <button id="btn-logout-header" onclick="logout()"
+                style="padding:8px 16px;background:#e74c3c;color:white;border:none;border-radius:5px;cursor:pointer;font-size:0.9rem;white-space:nowrap;">
+                🚪 Salir
+            </button>
+        </div>
     </header>
 
     <main class="dashboard-container">
-        <!-- Sidebar de navegación -->
         <aside class="dashboard-sidebar">
             <nav class="dashboard-nav">
-                <a href="#" class="nav-item active" data-section="noticias">
+                <a href="#" class="nav-item active" data-section="noticias"
+                   data-permission-module="noticias" data-permission-level="read">
                     <span class="nav-icon">📋</span>
                     <span class="nav-text">Noticias</span>
                 </a>
-                <a href="#" class="nav-item" data-section="galeria">
+                <a href="#" class="nav-item" data-section="galeria"
+                   data-permission-module="galeria" data-permission-level="read">
                     <span class="nav-icon">🖼️</span>
                     <span class="nav-text">Galería</span>
                 </a>
-                <a href="#" class="nav-item" data-section="documentos">
+                <a href="#" class="nav-item" data-section="documentos"
+                   data-permission-module="documentos" data-permission-level="read">
                     <span class="nav-icon">📄</span>
                     <span class="nav-text">Documentos</span>
                 </a>
-                <a href="#" class="nav-item" data-section="carreras">
+                <a href="#" class="nav-item" data-section="carreras"
+                   data-permission-module="carreras" data-permission-level="read">
                     <span class="nav-icon">🎓</span>
                     <span class="nav-text">Carreras</span>
                 </a>
-                <a href="#" class="nav-item" data-section="autoridades">
+                <a href="#" class="nav-item" data-section="autoridades"
+                   data-permission-module="autoridades" data-permission-level="read">
                     <span class="nav-icon">👥</span>
                     <span class="nav-text">Autoridades</span>
                 </a>
-                <a href="#" class="nav-item" data-section="mensajes">
+                <a href="#" class="nav-item" data-section="mensajes"
+                   data-permission-module="mensajes" data-permission-level="read">
                     <span class="nav-icon">📧</span>
                     <span class="nav-text">Mensajes</span>
                 </a>
-                <a href="#" class="nav-item" data-section="configuracion">
+                <a href="#" class="nav-item" data-section="configuracion"
+                   data-permission-module="config" data-permission-level="read">
                     <span class="nav-icon">⚙️</span>
                     <span class="nav-text">Configuración</span>
                 </a>
-                <a href="#" class="nav-item" data-section="usuarios">
+                <a href="#" class="nav-item" data-section="usuarios"
+                   data-permission-module="usuarios" data-permission-level="read">
                     <span class="nav-icon">👤</span>
                     <span class="nav-text">Usuarios y Roles</span>
                 </a>
@@ -61,18 +78,19 @@
             </nav>
         </aside>
 
-        <!-- Contenido Principal -->
         <div class="dashboard-content">
-            <!-- Sección de Noticias -->
-            <section class="dashboard-section active" id="section-noticias">
+
+            <!-- ===================== NOTICIAS ===================== -->
+            <section class="dashboard-section active" id="section-noticias"
+                     data-permission-module="noticias" data-permission-level="read">
                 <div class="section-header">
                     <h2>Gestionar Noticias</h2>
-                    <button id="btn-nueva-noticia" class="btn btn-primary btn-large">
+                    <button id="btn-nueva-noticia" class="btn btn-primary btn-large"
+                            data-permission-module="noticias" data-permission-level="create"
+                            data-permission-button="true">
                         ➕ Nueva Noticia
                     </button>
                 </div>
-
-                <!-- Modal para crear/editar noticia -->
                 <div id="modal-noticia" class="modal">
                     <div class="modal-content">
                         <div class="modal-header">
@@ -84,17 +102,14 @@
                                 <label for="news-title">Título *</label>
                                 <input type="text" id="news-title" placeholder="Título de la noticia" required>
                             </div>
-
                             <div class="form-group">
                                 <label for="news-date">Fecha de publicación *</label>
                                 <input type="date" id="news-date" required>
                             </div>
-
                             <div class="form-group">
                                 <label for="news-description">Descripción *</label>
                                 <textarea id="news-description" placeholder="Descripción de la noticia" required rows="6"></textarea>
                             </div>
-
                             <div class="form-group">
                                 <label for="news-image">Imagen (opcional)</label>
                                 <div class="file-input-wrapper">
@@ -104,7 +119,6 @@
                                 </div>
                                 <div id="image-preview" class="image-preview"></div>
                             </div>
-
                             <div class="form-actions">
                                 <button type="submit" class="btn btn-success">Guardar Noticia</button>
                                 <button type="button" id="form-cancel" class="btn btn-secondary">Cancelar</button>
@@ -112,38 +126,31 @@
                         </form>
                     </div>
                 </div>
-
-                <!-- Tabla de noticias -->
                 <div class="table-wrapper">
                     <table class="noticias-table">
                         <thead>
                             <tr>
-                                <th>Imagen</th>
-                                <th>Título</th>
-                                <th>Fecha</th>
-                                <th>Descripción</th>
-                                <th>Acciones</th>
+                                <th>Imagen</th><th>Título</th><th>Fecha</th><th>Descripción</th><th>Acciones</th>
                             </tr>
                         </thead>
                         <tbody id="admin-news-list">
-                            <tr>
-                                <td colspan="5" class="text-center">Cargando noticias...</td>
-                            </tr>
+                            <tr><td colspan="5" class="text-center">Cargando noticias...</td></tr>
                         </tbody>
                     </table>
                 </div>
             </section>
 
-            <!-- Sección de Galería -->
-            <section class="dashboard-section" id="section-galeria">
+            <!-- ===================== GALERÍA ===================== -->
+            <section class="dashboard-section" id="section-galeria"
+                     data-permission-module="galeria" data-permission-level="read">
                 <div class="section-header">
                     <h2>Gestor de Fotos</h2>
-                    <button id="btn-subir-foto" class="btn btn-primary btn-large">
+                    <button id="btn-subir-foto" class="btn btn-primary btn-large"
+                            data-permission-module="galeria" data-permission-level="create"
+                            data-permission-button="true">
                         📤 Subir Foto
                     </button>
                 </div>
-
-                <!-- Modal para subir foto -->
                 <div id="modal-foto" class="modal">
                     <div class="modal-content modal-foto-content">
                         <div class="modal-header">
@@ -155,7 +162,6 @@
                                 <label for="foto-titulo">Título de la foto</label>
                                 <input type="text" id="foto-titulo" placeholder="Ej: Evento del mes">
                             </div>
-
                             <div class="form-group">
                                 <label for="foto-file">Foto *</label>
                                 <div class="file-input-wrapper">
@@ -163,9 +169,7 @@
                                     <label for="foto-file" class="file-label">Seleccionar foto</label>
                                     <span id="foto-file-name" class="file-name">Ningún archivo seleccionado</span>
                                 </div>
-                                <div id="foto-preview" class="image-preview"></div>
                             </div>
-
                             <div class="form-actions">
                                 <button type="submit" class="btn btn-success">Subir Foto</button>
                                 <button type="button" id="foto-form-cancel" class="btn btn-secondary">Cancelar</button>
@@ -173,124 +177,20 @@
                         </form>
                     </div>
                 </div>
-
-                <!-- Galería de fotos -->
-                <div class="galeria-grid" id="galeria-grid">
-                    <p class="text-center" style="grid-column: 1 / -1;">Cargando fotos...</p>
-                </div>
+                <div id="galeria-admin-container" class="galeria-admin-grid"></div>
             </section>
 
-            <!-- Sección de Carreras -->
-            <section class="dashboard-section" id="section-carreras">
-                <div class="section-header">
-                    <h2>Gestionar Carreras</h2>
-                    <button id="btn-nueva-carrera" class="btn btn-primary btn-large">
-                        ➕ Nueva Carrera
-                    </button>
-                </div>
-
-                <!-- Modal para crear/editar carrera -->
-                <div id="modal-carrera" class="modal">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h3 id="modal-carrera-titulo">Nueva Carrera</h3>
-                            <button class="modal-close" id="modal-carrera-close">&times;</button>
-                        </div>
-                        <form id="carrera-form" class="modal-form">
-                            <div class="form-group">
-                                <label for="carrera-title">Nombre de la Carrera *</label>
-                                <input type="text" id="carrera-title" placeholder="Ej: Ingeniería en Sistemas" required>
-                            </div>
-
-                            <div class="form-group">
-                                <label for="carrera-code">Código *</label>
-                                <input type="text" id="carrera-code" placeholder="Ej: IS-001" required>
-                            </div>
-
-                            <div class="form-group">
-                                <label for="carrera-description">Descripción Corta *</label>
-                                <textarea id="carrera-description" placeholder="Descripción breve que se mostrará en la tarjeta" required rows="3"></textarea>
-                            </div>
-
-                            <div class="form-group">
-                                <label for="carrera-full-description">Descripción Completa</label>
-                                <textarea id="carrera-full-description" placeholder="Descripción detallada que se mostrará al hacer clic" rows="6"></textarea>
-                            </div>
-
-                            <div class="form-group">
-                                <label for="carrera-duration">Duración (años) *</label>
-                                <input type="number" id="carrera-duration" placeholder="Ej: 4" min="1" required>
-                            </div>
-
-                            <div class="form-group">
-                                <label for="carrera-category">Categoría *</label>
-                                <select id="carrera-category" required>
-                                    <option value="">-- Selecciona una categoría --</option>
-                                    <option value="grado">Carrera de Grado</option>
-                                    <option value="posgrado">Carrera de Posgrado</option>
-                                    <option value="cursos">Cursos o Charlas</option>
-                                </select>
-                            </div>
-
-                            <div class="form-group">
-                                <label for="carrera-foto">Foto de la Carrera (opcional)</label>
-                                <div class="file-input-wrapper">
-                                    <input type="file" id="carrera-foto" accept="image/*" class="file-input">
-                                    <label for="carrera-foto" class="file-label">Seleccionar foto</label>
-                                    <span id="carrera-foto-name" class="file-name">Ningún archivo seleccionado</span>
-                                </div>
-                                <div id="carrera-foto-preview" class="image-preview"></div>
-                            </div>
-
-                            <div class="form-group">
-                                <label for="carrera-documento">Plan de Carrera (PDF) *</label>
-                                <div class="file-input-wrapper">
-                                    <input type="file" id="carrera-documento" accept=".pdf" class="file-input" required>
-                                    <label for="carrera-documento" class="file-label">Seleccionar PDF</label>
-                                    <span id="carrera-documento-name" class="file-name">Ningún archivo seleccionado</span>
-                                </div>
-                            </div>
-
-                            <div class="form-actions">
-                                <button type="submit" class="btn btn-success">Guardar Carrera</button>
-                                <button type="button" id="carrera-form-cancel" class="btn btn-secondary">Cancelar</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-
-                <!-- Tabla de carreras -->
-                <div class="table-wrapper">
-                    <table class="carreras-table">
-                        <thead>
-                            <tr>
-                                <th>Nombre</th>
-                                <th>Código</th>
-                                <th>Categoría</th>
-                                <th>Descripción</th>
-                                <th>Duración</th>
-                                <th>Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody id="admin-carreras-list">
-                            <tr>
-                                <td colspan="6" class="text-center">Cargando carreras...</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </section>
-
-            <!-- Sección de Documentos -->
-            <section class="dashboard-section" id="section-documentos">
+            <!-- ===================== DOCUMENTOS ===================== -->
+            <section class="dashboard-section" id="section-documentos"
+                     data-permission-module="documentos" data-permission-level="read">
                 <div class="section-header">
                     <h2>Gestionar Documentos</h2>
-                    <button id="btn-nuevo-documento" class="btn btn-primary btn-large">
+                    <button id="btn-nuevo-documento" class="btn btn-primary btn-large"
+                            data-permission-module="documentos" data-permission-level="create"
+                            data-permission-button="true">
                         ➕ Nuevo Documento
                     </button>
                 </div>
-
-                <!-- Modal para crear/editar documento -->
                 <div id="modal-documento" class="modal">
                     <div class="modal-content">
                         <div class="modal-header">
@@ -302,23 +202,22 @@
                                 <label for="doc-title">Título *</label>
                                 <input type="text" id="doc-title" placeholder="Ej: Constancia de Inscripción 2025" required>
                             </div>
-
                             <div class="form-group">
                                 <label for="doc-category">Categoría *</label>
                                 <select id="doc-category" required>
                                     <option value="">Seleccionar categoría</option>
                                     <option value="constancias">📜 Constancias</option>
+                                    <option value="formularios">📝 Formularios</option>
+                                    <option value="reglamentos">📗 Reglamentos</option>
                                     <option value="notas">📋 Modelo de Notas</option>
                                     <option value="guias">📖 Guías de Ayuda</option>
                                     <option value="otros">📁 Otros</option>
                                 </select>
                             </div>
-
                             <div class="form-group">
                                 <label for="doc-description">Descripción</label>
                                 <textarea id="doc-description" placeholder="Descripción del documento" rows="4"></textarea>
                             </div>
-
                             <div class="form-group">
                                 <label for="doc-file">Archivo PDF *</label>
                                 <div class="file-input-wrapper">
@@ -327,7 +226,6 @@
                                     <span id="doc-file-name" class="file-name">Ningún archivo seleccionado</span>
                                 </div>
                             </div>
-
                             <div class="form-actions">
                                 <button type="submit" class="btn btn-success">Guardar Documento</button>
                                 <button type="button" id="doc-form-cancel" class="btn btn-secondary">Cancelar</button>
@@ -335,48 +233,116 @@
                         </form>
                     </div>
                 </div>
-
-                <!-- Tabla de documentos -->
                 <div class="table-wrapper">
                     <table class="documentos-table">
                         <thead>
                             <tr>
-                                <th>Título</th>
-                                <th>Categoría</th>
-                                <th>Descripción</th>
-                                <th>Fecha</th>
-                                <th>Acciones</th>
+                                <th>Título</th><th>Categoría</th><th>Descripción</th><th>Fecha</th><th>Acciones</th>
                             </tr>
                         </thead>
                         <tbody id="admin-docs-list">
-                            <tr>
-                                <td colspan="5" class="text-center">Cargando documentos...</td>
-                            </tr>
+                            <tr><td colspan="5" class="text-center">Cargando documentos...</td></tr>
                         </tbody>
                     </table>
                 </div>
             </section>
 
-            <!-- Sección de Autoridades -->
-            <section class="dashboard-section" id="section-autoridades">
+            <!-- ===================== CARRERAS ===================== -->
+            <section class="dashboard-section" id="section-carreras"
+                     data-permission-module="carreras" data-permission-level="read">
+                <div class="section-header">
+                    <h2>Gestionar Carreras</h2>
+                    <button id="btn-nueva-carrera" class="btn btn-primary btn-large"
+                            data-permission-module="carreras" data-permission-level="create"
+                            data-permission-button="true">
+                        ➕ Nueva Carrera
+                    </button>
+                </div>
+                <div id="modal-carrera" class="modal">
+                    <div class="modal-content" style="max-width:700px;">
+                        <div class="modal-header">
+                            <h3 id="modal-carrera-titulo">Nueva Carrera</h3>
+                            <button class="modal-close" id="modal-carrera-close">&times;</button>
+                        </div>
+                        <form id="carrera-form" enctype="multipart/form-data" class="modal-form">
+                            <div class="form-group">
+                                <label for="carrera-name">Nombre *</label>
+                                <input type="text" id="carrera-name" placeholder="Nombre de la carrera" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="carrera-code">Código</label>
+                                <input type="text" id="carrera-code" placeholder="Ej: LIC-ADM">
+                            </div>
+                            <div class="form-group">
+                                <label for="carrera-category">Categoría *</label>
+                                <select id="carrera-category" required>
+                                    <option value="grado">Grado</option>
+                                    <option value="posgrado">Posgrado</option>
+                                    <option value="cursos">Cursos y Extensión</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="carrera-description">Descripción corta *</label>
+                                <textarea id="carrera-description" placeholder="Descripción breve" required rows="3"></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label for="carrera-full-description">Descripción completa</label>
+                                <textarea id="carrera-full-description" placeholder="Descripción completa" rows="6"></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label for="carrera-duration">Duración</label>
+                                <input type="text" id="carrera-duration" placeholder="Ej: 4 años">
+                            </div>
+                            <div class="form-group">
+                                <label for="carrera-documento">Plan de Carrera (PDF)</label>
+                                <div class="file-input-wrapper">
+                                    <input type="file" id="carrera-documento" accept=".pdf" class="file-input">
+                                    <label for="carrera-documento" class="file-label">Seleccionar PDF</label>
+                                    <span id="carrera-doc-name" class="file-name">Ningún archivo seleccionado</span>
+                                </div>
+                            </div>
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-success">Guardar Carrera</button>
+                                <button type="button" id="carrera-form-cancel" class="btn btn-secondary">Cancelar</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                <div class="table-wrapper">
+                    <table class="carreras-table">
+                        <thead>
+                            <tr>
+                                <th>Nombre</th><th>Código</th><th>Categoría</th><th>Descripción</th><th>Duración</th><th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-carreras-list">
+                            <tr><td colspan="6" class="text-center">Cargando carreras...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- ===================== AUTORIDADES ===================== -->
+            <section class="dashboard-section" id="section-autoridades"
+                     data-permission-module="autoridades" data-permission-level="read">
                 <div class="section-header">
                     <h2>Gestionar Autoridades</h2>
-                    <button id="btn-nueva-autoridad" class="btn btn-primary btn-large">
+                    <button id="btn-nueva-autoridad" class="btn btn-primary btn-large"
+                            data-permission-module="autoridades" data-permission-level="create"
+                            data-permission-button="true">
                         ➕ Nueva Autoridad
                     </button>
                 </div>
-
-                <!-- Modal para crear/editar autoridad -->
                 <div id="modal-autoridad" class="modal">
                     <div class="modal-content">
                         <div class="modal-header">
                             <h3 id="modal-autoridad-titulo">Nueva Autoridad</h3>
                             <button class="modal-close" id="modal-autoridad-close">&times;</button>
                         </div>
-                        <form id="autoridad-form" class="modal-form">
+                        <form id="autoridad-form" enctype="multipart/form-data" class="modal-form">
                             <div class="form-group">
-                                <label for="autoridad-nombre">Nombre *</label>
-                                <input type="text" id="autoridad-nombre" placeholder="Ej: Dr. Juan García" required>
+                                <label for="autoridad-nombre">Nombre completo *</label>
+                                <input type="text" id="autoridad-nombre" placeholder="Nombre y apellido" required>
                             </div>
                             <div class="form-group">
                                 <label for="autoridad-cargo">Cargo *</label>
@@ -384,11 +350,15 @@
                             </div>
                             <div class="form-group">
                                 <label for="autoridad-email">Email</label>
-                                <input type="email" id="autoridad-email" placeholder="Ej: juan@unf.edu.ar">
+                                <input type="email" id="autoridad-email" placeholder="correo@ejemplo.com">
                             </div>
                             <div class="form-group">
                                 <label for="autoridad-telefono">Teléfono</label>
-                                <input type="tel" id="autoridad-telefono" placeholder="Ej: +54 9 123 456 7890">
+                                <input type="text" id="autoridad-telefono" placeholder="Ej: +54 9 11 1234-5678">
+                            </div>
+                            <div class="form-group">
+                                <label for="autoridad-orden">Orden de aparición</label>
+                                <input type="number" id="autoridad-orden" placeholder="Ej: 1" min="1" class="form-input" style="max-width: 100px;">
                             </div>
                             <div class="form-group">
                                 <label for="autoridad-foto">Foto</label>
@@ -397,7 +367,6 @@
                                     <label for="autoridad-foto" class="file-label">Seleccionar foto</label>
                                     <span id="autoridad-foto-name" class="file-name">Ningún archivo seleccionado</span>
                                 </div>
-                                <div id="autoridad-foto-preview" class="image-preview"></div>
                             </div>
                             <div class="form-actions">
                                 <button type="submit" class="btn btn-success">Guardar Autoridad</button>
@@ -406,41 +375,33 @@
                         </form>
                     </div>
                 </div>
-
-                <!-- Tabla de autoridades -->
                 <div class="table-wrapper">
                     <table class="autoridades-table">
                         <thead>
                             <tr>
-                                <th>Foto</th>
-                                <th>Nombre</th>
-                                <th>Cargo</th>
-                                <th>Email</th>
-                                <th>Teléfono</th>
-                                <th>Acciones</th>
+                                <th>Foto</th><th>Nombre</th><th>Cargo</th><th>Email</th><th>Teléfono</th><th>Acciones</th>
                             </tr>
                         </thead>
                         <tbody id="admin-autoridades-list">
-                            <tr>
-                                <td colspan="6" class="text-center">Cargando autoridades...</td>
-                            </tr>
+                            <tr><td colspan="6" class="text-center">Cargando autoridades...</td></tr>
                         </tbody>
                     </table>
                 </div>
             </section>
 
-            <!-- Sección de Mensajes -->
-            <section class="dashboard-section" id="section-mensajes">
+            <!-- ===================== MENSAJES ===================== -->
+            <section class="dashboard-section" id="section-mensajes"
+                     data-permission-module="mensajes" data-permission-level="read">
                 <div class="section-header">
                     <h2>Mensajes de Contacto</h2>
-                    <p style="font-size: 0.9rem; color: #666; margin: 0;">
+                    <p style="font-size:0.9rem;color:#666;margin:0;">
                         <span id="mensajes-no-leidos">0</span> sin leer
                     </p>
-                    <div style="margin-left: auto; display: flex; gap: 8px; align-items: center;">
-                        <label style="font-size:0.85rem; color:#666;">Desde <input id="export-desde" type="date" style="margin-left:6px;" /></label>
-                        <label style="font-size:0.85rem; color:#666;">Hasta <input id="export-hasta" type="date" style="margin-left:6px;" /></label>
-                        <label style="font-size:0.85rem; color:#666;">Estado
-                            <select id="export-estado" style="margin-left:6px; padding:4px;">
+                    <div style="margin-left:auto;display:flex;gap:8px;align-items:center;">
+                        <label style="font-size:0.85rem;color:#666;">Desde <input id="export-desde" type="date" style="margin-left:6px;"/></label>
+                        <label style="font-size:0.85rem;color:#666;">Hasta <input id="export-hasta" type="date" style="margin-left:6px;"/></label>
+                        <label style="font-size:0.85rem;color:#666;">Estado
+                            <select id="export-estado" style="margin-left:6px;padding:4px;">
                                 <option value="all">Todos</option>
                                 <option value="no-leido">Sin leer</option>
                                 <option value="leido">Leídos</option>
@@ -450,70 +411,41 @@
                         <button id="export-mensajes-xlsx" class="btn btn-secondary">⬇️ Exportar Excel</button>
                     </div>
                 </div>
-
-                <!-- Tabla de mensajes -->
                 <div class="table-wrapper">
                     <table class="mensajes-table">
                         <thead>
                             <tr>
-                                <th>De</th>
-                                <th>Asunto</th>
-                                <th>Fecha</th>
-                                <th>Estado</th>
-                                <th>Acciones</th>
+                                <th>Estado</th><th>Nombre</th><th>Email</th><th>Asunto</th><th>Fecha</th><th>Acciones</th>
                             </tr>
                         </thead>
                         <tbody id="admin-mensajes-list">
-                            <tr>
-                                <td colspan="5" class="text-center">Cargando mensajes...</td>
-                            </tr>
+                            <tr><td colspan="6" class="text-center">Cargando mensajes...</td></tr>
                         </tbody>
                     </table>
                 </div>
-
-                <!-- Modal para ver mensajes -->
-                <div id="modal-mensaje" class="modal">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h3>Mensaje de Contacto</h3>
-                            <button class="modal-close" id="modal-mensaje-close">&times;</button>
-                        </div>
-                        <div class="modal-body" id="modal-mensaje-body">
-                            <!-- Contenido del mensaje se carga aquí -->
-                        </div>
-                        <div class="form-actions">
-                            <button id="btn-eliminar-mensaje" class="btn btn-danger">🗑️ Eliminar</button>
-                            <button class="modal-close-btn btn btn-secondary">Cerrar</button>
-                        </div>
-                    </div>
-                </div>
             </section>
 
-            <!-- Sección de Usuarios y Roles -->
-            <section class="dashboard-section" id="section-usuarios">
+            <!-- ===================== USUARIOS Y ROLES ===================== -->
+            <section class="dashboard-section" id="section-usuarios"
+                     data-permission-module="usuarios" data-permission-level="read">
                 <div class="section-header">
-                    <h2>Gestionar Usuarios y Roles</h2>
+                    <h2>Usuarios y Roles</h2>
                 </div>
-
-                <!-- Tabs -->
-                <div class="tabs-container" style="margin-bottom: 20px; border-bottom: 2px solid #e0e0e0; display: flex; gap: 10px;">
-                    <button class="tab-button active" onclick="switchTab('usuarios-tab')" style="padding: 10px 20px; background: none; border: none; border-bottom: 3px solid #007bff; cursor: pointer; font-weight: bold;">
-                        👤 Usuarios
-                    </button>
-                    <button class="tab-button" onclick="switchTab('roles-tab')" style="padding: 10px 20px; background: none; border: none; cursor: pointer; font-weight: bold; color: #666;">
-                        🔐 Roles
-                    </button>
+                <div style="display:flex;gap:10px;margin-bottom:20px;">
+                    <button id="tab-usuarios-btn" class="btn btn-primary" onclick="showTab('usuarios')">👤 Usuarios</button>
+                    <button id="tab-roles-btn" class="btn btn-secondary" onclick="showTab('roles')">🔑 Roles</button>
                 </div>
 
                 <!-- TAB: USUARIOS -->
-                <div id="usuarios-tab" class="tab-content active" style="display: block;">
-                    <div style="margin-bottom: 15px;">
-                        <button id="btn-nuevo-usuario" class="btn btn-primary btn-large" onclick="openUserModal()">
+                <div id="usuarios-tab" class="tab-content tab-active" style="display:block;">
+                    <div style="margin-bottom:15px;">
+                        <button id="btn-nuevo-usuario" class="btn btn-primary btn-large"
+                                data-permission-module="usuarios" data-permission-level="create"
+                                data-permission-button="true"
+                                onclick="openUserModal()">
                             ➕ Nuevo Usuario
                         </button>
                     </div>
-
-                    <!-- Modal para crear/editar usuario -->
                     <div id="modal-usuario" class="modal">
                         <div class="modal-content">
                             <div class="modal-header">
@@ -525,31 +457,26 @@
                                     <label for="user-username">Usuario *</label>
                                     <input type="text" id="user-username" placeholder="Nombre de usuario" required>
                                 </div>
-
                                 <div class="form-group">
                                     <label for="user-email">Email *</label>
                                     <input type="email" id="user-email" placeholder="correo@ejemplo.com" required>
                                 </div>
-
                                 <div class="form-group">
                                     <label for="user-password">Contraseña *</label>
                                     <input type="password" id="user-password" placeholder="Contraseña" required>
                                 </div>
-
                                 <div class="form-group">
                                     <label for="user-role">Rol *</label>
                                     <select id="user-role" required>
                                         <option value="">-- Selecciona un rol --</option>
                                     </select>
                                 </div>
-
                                 <div class="form-group">
                                     <label for="user-enabled">
                                         <input type="checkbox" id="user-enabled" class="checkbox-input" checked>
                                         <span>Usuario Activo</span>
                                     </label>
                                 </div>
-
                                 <div class="form-actions">
                                     <button type="submit" class="btn btn-success">Guardar Usuario</button>
                                     <button type="button" onclick="closeUserModal()" class="btn btn-secondary">Cancelar</button>
@@ -557,39 +484,29 @@
                             </form>
                         </div>
                     </div>
-
-                    <!-- Tabla de usuarios -->
                     <div class="table-wrapper">
                         <table class="usuarios-table">
                             <thead>
                                 <tr>
-                                    <th>Usuario</th>
-                                    <th>Email</th>
-                                    <th>Rol</th>
-                                    <th>Estado</th>
-                                    <th>Acciones</th>
+                                    <th>Usuario</th><th>Email</th><th>Rol</th><th>Estado</th><th>Acciones</th>
                                 </tr>
                             </thead>
                             <tbody id="usuarios-tbody">
-                                <tr>
-                                    <td colspan="5" class="text-center">Cargando usuarios...</td>
-                                </tr>
+                                <tr><td colspan="5" class="text-center">Cargando usuarios...</td></tr>
                             </tbody>
                         </table>
                     </div>
                 </div>
 
                 <!-- TAB: ROLES -->
-                <div id="roles-tab" class="tab-content" style="display: none;">
-                    <div style="margin-bottom: 15px;">
+                <div id="roles-tab" class="tab-content" style="display:none;">
+                    <div style="margin-bottom:15px;">
                         <button id="btn-nuevo-rol" class="btn btn-primary btn-large" onclick="openRoleModal()">
                             ➕ Nuevo Rol
                         </button>
                     </div>
-
-                    <!-- Modal para crear/editar rol -->
                     <div id="modal-rol" class="modal">
-                        <div class="modal-content" style="width: 700px; max-height: 90vh; overflow-y: auto;">
+                        <div class="modal-content" style="width:700px;max-height:90vh;overflow-y:auto;">
                             <div class="modal-header">
                                 <h3 id="modal-titulo-rol">Nuevo Rol</h3>
                                 <button class="modal-close" onclick="closeRoleModal()">&times;</button>
@@ -599,19 +516,14 @@
                                     <label for="role-name">Nombre del Rol *</label>
                                     <input type="text" id="role-name" placeholder="Ej: Editor" required>
                                 </div>
-
                                 <div class="form-group">
                                     <label for="role-description">Descripción *</label>
                                     <textarea id="role-description" placeholder="Descripción del rol" required rows="3"></textarea>
                                 </div>
-
                                 <div class="form-group">
                                     <label>Permisos por Módulo *</label>
-                                    <div id="role-permissions-container" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 10px;">
-                                        <!-- Se generará dinámicamente -->
-                                    </div>
+                                    <div id="role-permissions-container" style="display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-top:10px;"></div>
                                 </div>
-
                                 <div class="form-actions">
                                     <button type="submit" class="btn btn-success">Guardar Rol</button>
                                     <button type="button" onclick="closeRoleModal()" class="btn btn-secondary">Cancelar</button>
@@ -619,29 +531,22 @@
                             </form>
                         </div>
                     </div>
-
-                    <!-- Tabla de roles -->
                     <div class="table-wrapper">
                         <table class="roles-table">
                             <thead>
-                                <tr>
-                                    <th>Nombre</th>
-                                    <th>Descripción</th>
-                                    <th>Acciones</th>
-                                </tr>
+                                <tr><th>Nombre</th><th>Descripción</th><th>Acciones</th></tr>
                             </thead>
                             <tbody id="roles-tbody">
-                                <tr>
-                                    <td colspan="3" class="text-center">Cargando roles...</td>
-                                </tr>
+                                <tr><td colspan="3" class="text-center">Cargando roles...</td></tr>
                             </tbody>
                         </table>
                     </div>
                 </div>
             </section>
 
-            <!-- Sección de Configuración -->
-            <section class="dashboard-section" id="section-configuracion">
+            <!-- ===================== CONFIGURACIÓN ===================== -->
+            <section class="dashboard-section" id="section-configuracion"
+                     data-permission-module="config" data-permission-level="read">
                 <div class="section-header">
                     <h2>Configuración del Sitio</h2>
                 </div>
@@ -649,110 +554,103 @@
                 <div class="config-card">
                     <h3>🔗 Preinscripción</h3>
                     <p class="config-description">Habilita o deshabilita el enlace de preinscripción en la página principal</p>
-                    
                     <div class="form-group">
                         <label for="config-preinscripcion-enabled">
                             <input type="checkbox" id="config-preinscripcion-enabled" class="checkbox-input">
                             <span>Habilitar Preinscripción</span>
                         </label>
                     </div>
-
                     <div class="form-group">
                         <label for="config-preinscripcion-url">URL de Preinscripción</label>
-                        <input type="url" id="config-preinscripcion-url" placeholder="https://guarani.unf.edu.ar/preinscripcion/unaf/?__o=" class="form-input">
+                        <input type="url" id="config-preinscripcion-url" placeholder="https://..." class="form-input">
                     </div>
-
                     <div class="form-actions">
-                        <button id="btn-guardar-config" class="btn btn-success">💾 Guardar Configuración</button>
+                        <button id="btn-save-preinscripcion" class="btn btn-primary"
+                                data-permission-module="config" data-permission-level="update"
+                                data-permission-button="true">
+                            💾 Guardar
+                        </button>
                     </div>
-
-                    <div id="config-message" class="message" style="display: none; margin-top: 15px;"></div>
                 </div>
 
-                <!-- Enlaces de Claustro -->
-                <div class="config-card">
+                <div class="config-card" style="margin-top:20px;">
                     <h3>📚 Enlaces para Claustros</h3>
-                    <p class="config-description">Administra los enlaces que aparecen en cada claustro (Estudiantes, Graduados, Docentes, No Docentes)</p>
-                    
-                    <div style="margin-bottom: 20px;">
-                        <h4>Selecciona un claustro</h4>
-                        <div class="form-group">
-                            <label for="claustro-select">Claustro *</label>
-                            <select id="claustro-select" class="form-input">
-                                <option value="">-- Selecciona un claustro --</option>
-                                <option value="estudiantes">👨‍🎓 Estudiantes</option>
-                                <option value="graduados">🎓 Graduados</option>
-                                <option value="docentes">👨‍🏫 Docentes</option>
-                                <option value="no-docentes">👨‍💼 No Docentes</option>
-                            </select>
-                        </div>
+                    <p class="config-description">Administrá los enlaces del menú Claustro para cada grupo</p>
+                    <div class="form-group">
+                        <label for="claustro-select">Claustro</label>
+                        <select id="claustro-select" class="form-input">
+                            <option value="">-- Seleccionar claustro --</option>
+                        </select>
                     </div>
-
-                    <div style="margin-bottom: 20px; border: 1px solid #e0e0e0; padding: 15px; border-radius: 4px; display: none;" id="claustro-form-container">
-                        <h4>Agregar enlace a <span id="claustro-nombre"></span></h4>
+                    <div id="claustro-form-container" style="display:none;">
                         <div class="form-group">
-                            <label for="claustro-link-title">Nombre del enlace *</label>
-                            <input type="text" id="claustro-link-title" placeholder="Ej: Portal de Estudiantes, Aula Virtual" class="form-input">
+                            <label for="claustro-link-nombre">Nombre del enlace *</label>
+                            <input type="text" id="claustro-link-nombre" placeholder="Ej: Aula Virtual" class="form-input">
                         </div>
                         <div class="form-group">
                             <label for="claustro-link-url">URL *</label>
-                            <input type="url" id="claustro-link-url" placeholder="https://ejemplo.com" class="form-input">
+                            <input type="url" id="claustro-link-url" placeholder="https://..." class="form-input">
                         </div>
                         <div class="form-group">
-                            <label for="claustro-link-icon">Emoji/Icono</label>
-                            <input type="text" id="claustro-link-icon" placeholder="📚, 🎓, 📝, etc." maxlength="2" class="form-input" style="max-width: 100px;">
+                            <label for="claustro-link-icono">Emoji/Icono</label>
+                            <input type="text" id="claustro-link-icono" placeholder="💻" maxlength="2" class="form-input" style="max-width:100px;">
                         </div>
                         <div class="form-actions">
-                            <button id="btn-agregar-claustro-link" class="btn btn-primary">➕ Agregar enlace</button>
+                            <button id="btn-agregar-claustro-link" class="btn btn-primary"
+                                    data-permission-module="config" data-permission-level="update"
+                                    data-permission-button="true">
+                                ➕ Agregar enlace
+                            </button>
                         </div>
-                        <div id="claustro-link-add-message" class="message" style="display: none; margin-top: 10px;"></div>
+                        <div id="claustro-link-add-message" class="message" style="display:none;margin-top:10px;"></div>
                     </div>
-
-                    <div style="border-top: 1px solid #ddd; padding-top: 20px; display: none;" id="claustro-links-container">
+                    <div style="border-top:1px solid #ddd;padding-top:20px;display:none;" id="claustro-links-container">
                         <h4>Enlaces de <span id="claustro-nombre-display"></span></h4>
-                        <div id="claustro-links-list" style="display: grid; gap: 10px;">
-                            <p style="color: #999;">Cargando enlaces...</p>
+                        <div id="claustro-links-list" style="display:grid;gap:10px;">
+                            <p style="color:#999;">Cargando enlaces...</p>
                         </div>
                     </div>
                 </div>
             </section>
-        </div>
+
+        </div><!-- fin dashboard-content -->
     </main>
 
     <script src="js/auth.js"></script>
     <script src="js/users-admin.js"></script>
     <script src="js/app.js"></script>
     <script>
-    // Validación adicional (backup, ya protegido por admin-guard.js)
-    // Nota: ensureAdminAccess() ya se ejecutó en admin-guard.js, esto es solo por seguridad
     document.addEventListener('DOMContentLoaded', () => {
-        // Mostrar info del usuario actual
+        // ── Nombre y rol del usuario en el header ──────────────────────
+        const user = JSON.parse(localStorage.getItem('faen_auth_user') || 'null');
+        if (user) {
+            document.getElementById('header-username').textContent = '👤 ' + user.username;
+            document.getElementById('header-userrole').textContent = user.role;
+        }
+
+        // ── Permisos y visibilidad ──────────────────────────────────────
         setUserInfo();
         updatePermissionVisibility();
+
+        // ── Activar la primera sección con acceso ──────────────────────
+        const todosLosNavItems = Array.from(document.querySelectorAll('.nav-item[data-section]'));
+        const primerItemVisible = todosLosNavItems.find(item => item.style.display !== 'none');
+
+        if (primerItemVisible) {
+            document.querySelectorAll('.dashboard-section').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            const sectionId = primerItemVisible.dataset.section;
+            const section = document.getElementById('section-' + sectionId);
+            if (section) section.classList.add('active');
+            primerItemVisible.classList.add('active');
+        }
     });
 
-    // Agregar botón de logout al header
-    const headerContent = document.querySelector('.header-content');
-    if (headerContent) {
-        const logoutBtn = document.createElement('button');
-        logoutBtn.className = 'logout-btn';
-        logoutBtn.innerHTML = '🚪 Salir';
-        logoutBtn.onclick = function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            // Llamar a la función logout() de auth.js
-            logout();
-        };
-        logoutBtn.style.position = 'absolute';
-        logoutBtn.style.right = '20px';
-        logoutBtn.style.top = '20px';
-        logoutBtn.style.padding = '8px 16px';
-        logoutBtn.style.backgroundColor = '#e74c3c';
-        logoutBtn.style.color = 'white';
-        logoutBtn.style.border = 'none';
-        logoutBtn.style.borderRadius = '5px';
-        logoutBtn.style.cursor = 'pointer';
-        headerContent.appendChild(logoutBtn);
+    function showTab(tab) {
+        document.getElementById('usuarios-tab').style.display = tab === 'usuarios' ? 'block' : 'none';
+        document.getElementById('roles-tab').style.display    = tab === 'roles'    ? 'block' : 'none';
+        document.getElementById('tab-usuarios-btn').className = tab === 'usuarios' ? 'btn btn-primary' : 'btn btn-secondary';
+        document.getElementById('tab-roles-btn').className    = tab === 'roles'    ? 'btn btn-primary' : 'btn btn-secondary';
     }
     </script>
 </body>
