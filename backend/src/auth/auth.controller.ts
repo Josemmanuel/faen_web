@@ -1,5 +1,5 @@
 import { Body, Controller, Post, UseGuards, Get, Request, Res } from '@nestjs/common';
-import { Response } from 'express'; // <--- Importar de express
+import { Response } from 'express';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { JwtAuthGuard } from './jwt.guard';
@@ -11,22 +11,22 @@ export class AuthController {
   @Post('login')
   async login(@Body() dto: LoginDto, @Res({ passthrough: true }) res: Response) {
     const result = await this.authService.login(dto);
-    
-    // Guardamos el token en una cookie para el navegador
+
+    // Setear cookie httpOnly además de devolver el token en el body
     res.cookie('jwt', result.access_token, {
       httpOnly: true,
-      secure: false, // Cambiar a true si usas HTTPS
+      secure: false,       // cambiar a true en producción con HTTPS
       sameSite: 'lax',
-      maxAge: 1000 * 60 * 60 * 8, // 8 horas
+      maxAge: 1000 * 60 * 60 * 8,  // 8 horas
     });
 
-    return result; 
+    return result;
   }
 
-  @UseGuards(JwtAuthGuard)
+  // ⚠️  Sin @UseGuards — el logout debe funcionar aunque el token ya haya expirado
   @Post('logout')
   async logout(@Res({ passthrough: true }) res: Response) {
-    res.clearCookie('jwt'); // <--- Borramos la cookie
+    res.clearCookie('jwt', { httpOnly: true, sameSite: 'lax', secure: false });
     return { message: 'Sesión cerrada correctamente' };
   }
 
