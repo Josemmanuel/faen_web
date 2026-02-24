@@ -3,55 +3,56 @@ const API_BASE = 'http://localhost:3000/api';
 const TOKEN_KEY = 'faen_auth_token';
 const USER_KEY = 'faen_auth_user';
 
-// Funciones de autenticación
+// ─── LOGIN ────────────────────────────────────────────────────────────────────
 async function login(username, password) {
-  try {
-    const response = await fetch(`${API_BASE}/auth/login`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ username, password }),
-    });
+  const response = await fetch(`${API_BASE}/auth/login`, {
+    method: 'POST',
+    credentials: 'include',          // permite que el server setee la cookie httpOnly
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, password }),
+  });
 
-    if (!response.ok) {
-      throw new Error('Credenciales inválidas');
-    }
-
-    const data = await response.json();
-    localStorage.setItem(TOKEN_KEY, data.access_token);
-    localStorage.setItem(USER_KEY, JSON.stringify(data.user));
-
-    return data;
-  } catch (error) {
-    console.error('Error en login:', error);
-    throw error;
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.message || 'Credenciales inválidas');
   }
+
+  const data = await response.json();   // ← UNA sola lectura del body
+  localStorage.setItem(TOKEN_KEY, data.access_token);
+  localStorage.setItem(USER_KEY, JSON.stringify(data.user));
+  return data;
 }
 
-function logout() {
-  // Limpiar tokens del frontend - SER EXPLÍCITO
+// ─── LOGOUT ───────────────────────────────────────────────────────────────────
+async function logout() {
   console.log('[Logout] Iniciando logout...');
 
+  // 1. Avisar al backend para que borre la cookie httpOnly
+  try {
+    const token = localStorage.getItem(TOKEN_KEY);
+    await fetch(`${API_BASE}/auth/logout`, {
+      method: 'POST',
+      credentials: 'include',         // necesario para enviar/recibir la cookie
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+      },
+    });
+    console.log('[Logout] Cookie borrada en el servidor');
+  } catch (e) {
+    console.warn('[Logout] No se pudo contactar al servidor, limpiando localmente');
+  }
+
+  // 2. Limpiar todo el almacenamiento local
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(USER_KEY);
-  localStorage.removeItem('faen_auth_token');
-  localStorage.removeItem('faen_auth_user');
-
-  sessionStorage.removeItem('admin_authenticated');
-  sessionStorage.removeItem('admin_user');
-  sessionStorage.removeItem('admin_pass');
   sessionStorage.clear();
 
-  console.log('[Logout] Tokens eliminados');
-  console.log('[Logout] Token en localStorage:', localStorage.getItem(TOKEN_KEY));
-  console.log('[Logout] User en localStorage:', localStorage.getItem(USER_KEY));
-
-  // Redirigir a login (no a index) - usar replace() para no dejar en historial
-  console.log('[Logout] Redirigiendo a /login.html');
+  console.log('[Logout] Storage limpiado, redirigiendo...');
   window.location.replace('/login.html');
 }
 
+// ─── HELPERS ──────────────────────────────────────────────────────────────────
 function getToken() {
   return localStorage.getItem(TOKEN_KEY);
 }
@@ -68,120 +69,84 @@ function isAuthenticated() {
 function hasPermission(module, level) {
   const user = getCurrentUser();
   if (!user) return false;
-
-  const userLevel = user.permissions[module];
-  const levelHierarchy = { 'none': 0, 'read': 1, 'update': 2, 'create': 3, 'delete': 3 };
-
-  return (levelHierarchy[userLevel] || 0) >= (levelHierarchy[level] || 0);
+  const userLevel = user.permissions?.[module];
+  const hierarchy = { none: 0, read: 1, update: 2, create: 3, delete: 3 };
+  return (hierarchy[userLevel] || 0) >= (hierarchy[level] || 0);
 }
 
-// Hacer fetch con autenticación
+// Fetch autenticado — redirige al login si recibe 401
 async function authenticatedFetch(url, options = {}) {
   const token = getToken();
   const headers = {
     'Content-Type': 'application/json',
     ...options.headers,
+    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
   };
 
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
-  }
+  const response = await fetch(url, { ...options, headers, credentials: 'include' });
 
-  const response = await fetch(url, {
-    ...options,
-    headers,
-  });
-
-  // Manejar token expirado o inválido
   if (response.status === 401) {
-    // Token expirado o inválido
-    console.warn('Token expirado - redirigiendo a login');
-    logout();
-    window.location.href = '/login.html?expired=true';
+    console.warn('[Auth] Token expirado o inválido — redirigiendo a login');
+    await logout();
     return response;
   }
 
   return response;
 }
 
-// Redirigir a login si no está autenticado
+// ─── GUARDS ───────────────────────────────────────────────────────────────────
 function ensureAuthenticated() {
   if (!isAuthenticated()) {
-    window.location.href = '/login.html';
+    window.location.replace('/login.html');
     return false;
   }
   return true;
 }
 
-// Validación robusta para acceso a admin
 function ensureAdminAccess() {
   const token = getToken();
-  const user = getCurrentUser();
+  const user  = getCurrentUser();
 
-  // Validar token existe
-  if (!token) {
-    window.location.replace('/login.html?redirect=admin');
-    return false;
-  }
-
-  // Validar usuario existe
-  if (!user) {
+  if (!token) { window.location.replace('/login.html?redirect=admin'); return false; }
+  if (!user)  {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
     window.location.replace('/login.html?redirect=admin');
     return false;
   }
-
-  // Validar user tiene rol admin (o rol que permita acceso)
   if (!user.role || (user.role !== 'admin' && user.role !== 'superadmin')) {
     window.location.replace('/index.html?error=access_denied');
     return false;
   }
-
   return true;
 }
 
-// Establecer la información del usuario en el UI
+// ─── UI HELPERS ───────────────────────────────────────────────────────────────
 function setUserInfo() {
   const user = getCurrentUser();
   if (!user) return;
 
   const userInfoEl = document.getElementById('user-info');
   if (userInfoEl) {
-    userInfoEl.innerHTML = `
-      <span>${user.username}</span>
-      <small>${user.role}</small>
-    `;
+    userInfoEl.innerHTML = `<span>${user.username}</span><small>${user.role}</small>`;
   }
-
   const usernameEl = document.getElementById('current-username');
-  if (usernameEl) {
-    usernameEl.textContent = user.username;
-  }
+  if (usernameEl) usernameEl.textContent = user.username;
 }
 
-// Actualizar seisibilidad de elementos basado en permisos
 function updatePermissionVisibility() {
   const user = getCurrentUser();
   if (!user) return;
 
-  // Ocultar/mostrar secciones basadas en permisos
   document.querySelectorAll('[data-permission-module]').forEach(el => {
     const module = el.getAttribute('data-permission-module');
-    const level = el.getAttribute('data-permission-level') || 'read';
-
-    if (hasPermission(module, level)) {
-      el.style.display = '';
-    } else {
-      el.style.display = 'none';
-    }
+    const level  = el.getAttribute('data-permission-level') || 'read';
+    el.style.display = hasPermission(module, level) ? '' : 'none';
   });
 
-  // Deshabilitar botones basados en permisos
   document.querySelectorAll('[data-permission-button]').forEach(el => {
     const module = el.getAttribute('data-permission-module');
-    const level = el.getAttribute('data-permission-level') || 'read';
-
+    const level  = el.getAttribute('data-permission-level') || 'read';
     if (!hasPermission(module, level)) {
       el.disabled = true;
       el.classList.add('disabled');

@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin - Documentos - FAEN</title>
     <link rel="stylesheet" href="css/styles.css">
 </head>
+
 <body>
     <header>
         <div class="header-content">
@@ -59,7 +61,8 @@
                         <form id="documento-form" enctype="multipart/form-data" class="modal-form">
                             <div class="form-group">
                                 <label for="doc-title">Título *</label>
-                                <input type="text" id="doc-title" placeholder="Ej: Constancia de Inscripción 2025" required>
+                                <input type="text" id="doc-title" placeholder="Ej: Constancia de Inscripción 2025"
+                                    required>
                             </div>
 
                             <div class="form-group">
@@ -75,7 +78,8 @@
 
                             <div class="form-group">
                                 <label for="doc-description">Descripción</label>
-                                <textarea id="doc-description" placeholder="Descripción del documento" rows="4"></textarea>
+                                <textarea id="doc-description" placeholder="Descripción del documento"
+                                    rows="4"></textarea>
                             </div>
 
                             <div class="form-group">
@@ -119,20 +123,19 @@
     </main>
 
     <script>
-        const API_BASE = 'http://localhost:3000/api';
-        let credentials = null;
+        const API_BASE = '/api'; // Ruta relativa
         let allDocuments = [];
 
-        // Autenticación
+        // --- CAMBIO CLAVE: Obtener el token del sistema real ---
+        const token = localStorage.getItem('token');
+
         window.addEventListener('load', () => {
-            const user = prompt('Usuario:');
-            const pass = prompt('Contraseña:');
-            if (user && pass) {
-                credentials = btoa(user + ':' + pass);
-                loadDocuments();
-            } else {
+            if (!token) {
+                // Si no hay token, redirigir al login principal
                 window.location.href = 'admin.html';
+                return;
             }
+            loadDocuments();
         });
 
         // Modal
@@ -171,31 +174,47 @@
 
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
-            
+
             const formData = new FormData();
             formData.append('title', document.getElementById('doc-title').value);
             formData.append('category', document.getElementById('doc-category').value);
             formData.append('description', document.getElementById('doc-description').value);
-            formData.append('file', fileInput.files[0]);
+            formData.append('documento', fileInput.files[0]);
 
             try {
                 const response = await fetch(`${API_BASE}/documents`, {
                     method: 'POST',
-                    headers: { 'Authorization': 'Basic ' + credentials },
-                    body: formData
+                    headers: {
+                        // --- CAMBIO CLAVE: Usar Bearer Token ---
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: formData // Recuerda: NO pongas Content-Type manualmente aquí
                 });
 
                 if (response.ok) {
                     modal.style.display = 'none';
                     loadDocuments();
+                    form.reset();
                 } else {
-                    alert('Error al guardar el documento');
+                    alert('Error al guardar: ' + response.statusText);
                 }
             } catch (err) {
                 alert('Error: ' + err.message);
             }
         });
 
+        async function loadDocuments() {
+            try {
+                const response = await fetch(`${API_BASE}/documents`);
+                if (!response.ok) throw new Error('Error al cargar');
+                allDocuments = await response.json();
+                displayDocuments();
+            } catch (err) {
+                console.error('Error:', err);
+                const tbody = document.getElementById('admin-docs-list');
+                if (tbody) tbody.innerHTML = '<tr><td colspan="5">Error de conexión</td></tr>';
+            }
+        }
         async function loadDocuments() {
             try {
                 const response = await fetch(`${API_BASE}/documents`);
@@ -242,10 +261,15 @@
                 try {
                     const response = await fetch(`${API_BASE}/documents/${id}`, {
                         method: 'DELETE',
-                        headers: { 'Authorization': 'Basic ' + credentials }
+                        headers: {
+                            // --- CAMBIO CLAVE: Usar Bearer Token ---
+                            'Authorization': `Bearer ${token}`
+                        }
                     });
                     if (response.ok) {
                         loadDocuments();
+                    } else {
+                        alert('No tienes permiso para eliminar');
                     }
                 } catch (err) {
                     alert('Error: ' + err.message);
@@ -254,4 +278,5 @@
         }
     </script>
 </body>
+
 </html>

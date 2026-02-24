@@ -6,130 +6,23 @@
     <title>Login - FAEN</title>
     <link rel="stylesheet" href="css/styles.css">
     <style>
-        body {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        }
-
-        .login-container {
-            background: white;
-            border-radius: 10px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-            padding: 40px;
-            width: 100%;
-            max-width: 400px;
-        }
-
-        .login-header {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-
-        .login-header img {
-            height: 80px;
-            margin-bottom: 15px;
-        }
-
-        .login-header h1 {
-            color: #333;
-            font-size: 24px;
-            margin: 0;
-        }
-
-        .login-header p {
-            color: #666;
-            margin-top: 5px;
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            color: #333;
-            font-weight: 500;
-        }
-
-        .form-group input {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            font-size: 14px;
-            transition: border-color 0.3s;
-            box-sizing: border-box;
-        }
-
-        .form-group input:focus {
-            outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-        }
-
-        .login-button {
-            width: 100%;
-            padding: 12px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            border-radius: 5px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-
-        .login-button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
-        }
-
-        .login-button:active {
-            transform: translateY(0);
-        }
-
-        .login-button:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        .error-message {
-            color: #e74c3c;
-            background: #fadbd8;
-            padding: 12px;
-            border-radius: 5px;
-            margin-bottom: 20px;
-            display: none;
-        }
-
-        .success-message {
-            color: #27ae60;
-            background: #d5f4e6;
-            padding: 12px;
-            border-radius: 5px;
-            margin-bottom: 20px;
-            display: none;
-        }
-
-        .loading {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid rgba(255,255,255,.3);
-            border-radius: 50%;
-            border-top-color: white;
-            animation: spin 1s ease-in-out infinite;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
+        body { display:flex; justify-content:center; align-items:center; min-height:100vh; background:linear-gradient(135deg,#667eea 0%,#764ba2 100%); }
+        .login-container { background:white; border-radius:10px; box-shadow:0 10px 25px rgba(0,0,0,0.2); padding:40px; width:100%; max-width:400px; }
+        .login-header { text-align:center; margin-bottom:30px; }
+        .login-header img { height:80px; margin-bottom:15px; }
+        .login-header h1 { color:#333; font-size:24px; margin:0; }
+        .login-header p { color:#666; margin-top:5px; }
+        .form-group { margin-bottom:20px; }
+        .form-group label { display:block; margin-bottom:8px; color:#333; font-weight:500; }
+        .form-group input { width:100%; padding:12px; border:1px solid #ddd; border-radius:5px; font-size:14px; transition:border-color 0.3s; box-sizing:border-box; }
+        .form-group input:focus { outline:none; border-color:#667eea; box-shadow:0 0 0 3px rgba(102,126,234,0.1); }
+        .login-button { width:100%; padding:12px; background:linear-gradient(135deg,#667eea 0%,#764ba2 100%); color:white; border:none; border-radius:5px; font-size:16px; font-weight:600; cursor:pointer; transition:transform 0.2s,box-shadow 0.2s; }
+        .login-button:hover { transform:translateY(-2px); box-shadow:0 5px 15px rgba(102,126,234,0.3); }
+        .login-button:disabled { opacity:0.6; cursor:not-allowed; transform:none; }
+        .error-message { color:#e74c3c; background:#fadbd8; padding:12px; border-radius:5px; margin-bottom:20px; display:none; }
+        .success-message { color:#27ae60; background:#d5f4e6; padding:12px; border-radius:5px; margin-bottom:20px; display:none; }
+        .loading { display:inline-block; width:20px; height:20px; border:3px solid rgba(255,255,255,.3); border-radius:50%; border-top-color:white; animation:spin 1s ease-in-out infinite; }
+        @keyframes spin { to { transform:rotate(360deg); } }
     </style>
 </head>
 <body>
@@ -146,71 +39,70 @@
         <form id="login-form">
             <div class="form-group">
                 <label for="username">Usuario</label>
-                <input type="text" id="username" name="username" placeholder="Ingresa tu usuario" required>
+                <input type="text" id="username" name="username" placeholder="Ingresa tu usuario" required autocomplete="username">
             </div>
-
             <div class="form-group">
                 <label for="password">Contraseña</label>
-                <input type="password" id="password" name="password" placeholder="Ingresa tu contraseña" required>
+                <input type="password" id="password" name="password" placeholder="Ingresa tu contraseña" required autocomplete="current-password">
             </div>
-
-            <button type="submit" id="login-button" class="login-button">
-                Iniciar Sesión
-            </button>
+            <button type="submit" id="login-button" class="login-button">Iniciar Sesión</button>
         </form>
     </div>
 
     <script src="js/auth.js"></script>
     <script>
-        // Redirigir al admin si ya está autenticado
-        if (isAuthenticated()) {
-            window.location.href = '/admin.html';
-        }
-
-        const loginForm = document.getElementById('login-form');
-        const errorEl = document.getElementById('error-message');
-        const successEl = document.getElementById('success-message');
-        const loginButton = document.getElementById('login-button');
-
-        loginForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-
-            const username = document.getElementById('username').value.trim();
-            const password = document.getElementById('password').value.trim();
-
-            if (!username || !password) {
-                showError('Por favor completa todos los campos');
+        document.addEventListener('DOMContentLoaded', function () {
+            // isAuthenticated() ya está disponible porque auth.js cargó antes
+            if (isAuthenticated()) {
+                window.location.replace('/admin.html');
                 return;
             }
 
-            loginButton.disabled = true;
-            loginButton.innerHTML = '<div class="loading"></div>';
+            var loginForm   = document.getElementById('login-form');
+            var errorEl     = document.getElementById('error-message');
+            var successEl   = document.getElementById('success-message');
+            var loginButton = document.getElementById('login-button');
 
-            try {
-                const result = await login(username, password);
-                showSuccess('¡Inicio de sesión exitoso!');
+            loginForm.addEventListener('submit', async function (e) {
+                e.preventDefault();
 
-                setTimeout(() => {
-                    window.location.href = '/admin.html';
-                }, 1000);
-            } catch (error) {
-                showError(error.message || 'Error al iniciar sesión');
-                loginButton.disabled = false;
-                loginButton.innerHTML = 'Iniciar Sesión';
+                var username = document.getElementById('username').value.trim();
+                var password = document.getElementById('password').value.trim();
+
+                if (!username || !password) {
+                    showError('Por favor completa todos los campos');
+                    return;
+                }
+
+                loginButton.disabled = true;
+                loginButton.innerHTML = '<div class="loading"></div>';
+                errorEl.style.display = 'none';
+                successEl.style.display = 'none';
+
+                try {
+                    await login(username, password); // función de auth.js
+                    showSuccess('¡Inicio de sesión exitoso!');
+                    setTimeout(function () {
+                        window.location.replace('/admin.html');
+                    }, 700);
+                } catch (error) {
+                    showError(error.message || 'Credenciales incorrectas');
+                    loginButton.disabled = false;
+                    loginButton.innerHTML = 'Iniciar Sesión';
+                }
+            });
+
+            function showError(msg) {
+                errorEl.textContent = msg;
+                errorEl.style.display = 'block';
+                successEl.style.display = 'none';
+            }
+            function showSuccess(msg) {
+                successEl.textContent = msg;
+                successEl.style.display = 'block';
+                errorEl.style.display = 'none';
             }
         });
-
-        function showError(message) {
-            errorEl.textContent = message;
-            errorEl.style.display = 'block';
-            successEl.style.display = 'none';
-        }
-
-        function showSuccess(message) {
-            successEl.textContent = message;
-            successEl.style.display = 'block';
-            errorEl.style.display = 'none';
-        }
     </script>
 </body>
 </html>

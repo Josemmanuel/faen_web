@@ -1,1 +1,13 @@
-[]
+[
+  {
+    "id": "1771730092871",
+    "nombre": "jose manuel benitez",
+    "email": "benitezjosemanuel24@gmail.com",
+    "telefono": "3704325233",
+    "asunto": "ayuda inscripcion carrera",
+    "mensaje": "prueba envio mensaje desde contacto desde index",
+    "fecha": "22/2/2026, 12:14:52",
+    "fechaISO": 1771730092871,
+    "leido": true
+  }
+]

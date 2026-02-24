@@ -58,20 +58,5 @@
       "config": "read",
       "usuarios": "none"
     }
-  },
-  {
-    "id": "role_cdb0e25a-e357-43a0-aa24-4032fe5f1b0c",
-    "name": "Secretario Académico",
-    "description": "nodo entre estudiantes y personal administrativo",
-    "default_permissions": {
-      "noticias": "read",
-      "autoridades": "none",
-      "carreras": "create",
-      "documentos": "none",
-      "galeria": "create",
-      "mensajes": "none",
-      "config": "create",
-      "usuarios": "none"
-    }
   }
 ]

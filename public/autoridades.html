@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -11,7 +12,7 @@
             margin: 20px auto;
             padding: 20px;
             background-color: white;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
         }
 
         .autoridades-container h2 {
@@ -34,7 +35,7 @@
             background: white;
             border-radius: 12px;
             overflow: hidden;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
             transition: transform 0.3s ease, box-shadow 0.3s ease;
             text-align: center;
         }
@@ -129,6 +130,7 @@
         }
     </style>
 </head>
+
 <body>
     <header>
         <img src="images/faenlogo.png" alt="Logo FAEN" class="logo">
@@ -142,12 +144,15 @@
                 <li><a href="autoridades.html"><span class="nav-icon">👔</span> Autoridades</a></li>
                 <li><a href="contacto.html"><span class="nav-icon">📞</span> Contacto</a></li>
                 <li class="dropdown">
-                    <a href="#" class="dropdown-toggle"><span class="nav-icon">👨‍🎓</span> Estudiantes <span class="dropdown-arrow">▼</span></a>
+                    <a href="#" class="dropdown-toggle"><span class="nav-icon">👨‍🎓</span> Estudiantes <span
+                            class="dropdown-arrow">▼</span></a>
                     <ul class="dropdown-menu">
                         <li id="preinscripcion-item" style="display: none;">
-                            <a id="preinscripcion-link" href="#" target="_blank"><span class="nav-icon">📝</span> Preinscripción</a>
+                            <a id="preinscripcion-link" href="#" target="_blank"><span class="nav-icon">📝</span>
+                                Preinscripción</a>
                         </li>
-                        <li><a href="https://guarani.unf.edu.ar/autogestion/" target="_blank"><span class="nav-icon">🔐</span> Autogestión</a></li>
+                        <li><a href="https://guarani.unf.edu.ar/autogestion/" target="_blank"><span
+                                    class="nav-icon">🔐</span> Autogestión</a></li>
                     </ul>
                 </li>
             </ul>
@@ -178,20 +183,34 @@
     </footer>
 
     <script src="js/app.js"></script>
+
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
             try {
                 const res = await fetch('/api/autoridades');
                 const autoridades = await res.json();
                 const listContainer = document.getElementById('autoridades-list');
-                
+
                 if (autoridades.length === 0) {
                     listContainer.innerHTML = '<p style="text-align: center; color: #666; grid-column: 1 / -1;">No hay autoridades registradas.</p>';
                 } else {
-                    listContainer.innerHTML = autoridades.map(auth => `
+                    listContainer.innerHTML = autoridades.map(auth => {
+                        // 1. Validamos si la foto es real y no es el default que falla
+                        const tieneFotoValida = auth.foto &&
+                            auth.foto !== '' &&
+                            auth.foto !== '/uploads/default-avatar.png';
+
+                        // 2. Preparamos un fallback (avatar con iniciales) por si la imagen falla físicamente
+                        const fallback = `https://ui-avatars.com/api/?name=${encodeURIComponent(auth.nombre)}&background=random&size=200`;
+
+                        return `
                         <div class="autoridad-card">
                             <div class="autoridad-foto">
-                                ${auth.foto ? `<img src="${auth.foto}" alt="${auth.nombre}">` : '<div class="autoridad-foto-placeholder">👤</div>'}
+                                ${tieneFotoValida
+                                ? `<img src="${auth.foto}" 
+                                            alt="${auth.nombre}" 
+                                            onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\'autoridad-foto-placeholder\'>👤</div>';">`
+                                : '<div class="autoridad-foto-placeholder">👤</div>'}
                             </div>
                             <div class="autoridad-info">
                                 <h3>${auth.nombre}</h3>
@@ -202,14 +221,15 @@
                                 </div>
                             </div>
                         </div>
-                    `).join('');
+                    `;
+                    }).join('');
                 }
             } catch (error) {
-                document.getElementById('autoridades-list').innerHTML = `<div class="error" style="grid-column: 1 / -1;">Error al cargar las autoridades: ${error.message}</div>`;
+                console.error(error);
+                document.getElementById('autoridades-list').innerHTML = `<div class="error" style="grid-column: 1 / -1;">Error al cargar las autoridades.</div>`;
             }
-
-
         });
     </script>
 </body>
+
 </html>

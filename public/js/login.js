@@ -1,4 +1,4 @@
-document.addEventListener('DOMContentLoaded', () => {
+/*document.addEventListener('DOMContentLoaded', () => {
     const loginForm = document.getElementById('login-form');
     const errorEl = document.getElementById('error-message');
     const successEl = document.getElementById('success-message');
@@ -19,20 +19,28 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const response = await fetch('/api/auth/login', {
                 method: 'POST',
+                credentials: 'include', // necesario para que el backend pueda setear la cookie
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ username, password })
             });
 
+            // ✅ Solo se lee UNA vez el body del response
             const data = await response.json();
 
             if (response.ok) {
-                const data = await response.json();
-
-                // ESTAS SON LAS LÍNEAS CLAVE:
+                // Guardar token y usuario en localStorage
                 localStorage.setItem('faen_auth_token', data.access_token);
                 localStorage.setItem('faen_auth_user', JSON.stringify(data.user));
 
-                window.location.href = 'admin.html';
+                // Mostrar mensaje y redirigir
+                if (successEl) {
+                    successEl.textContent = '¡Inicio de sesión exitoso!';
+                    successEl.style.display = 'block';
+                }
+
+                setTimeout(() => {
+                    window.location.href = '/admin.html';
+                }, 500);
             } else {
                 errorEl.textContent = data.message || 'Credenciales incorrectas';
                 errorEl.style.display = 'block';
@@ -40,10 +48,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 loginButton.textContent = 'Iniciar Sesión';
             }
         } catch (error) {
+            console.error('Error en login:', error);
             errorEl.textContent = 'Error de conexión con el servidor';
             errorEl.style.display = 'block';
             loginButton.disabled = false;
             loginButton.textContent = 'Iniciar Sesión';
         }
     });
-});
+});*/

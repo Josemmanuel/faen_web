@@ -45,9 +45,9 @@ async function logoutSession() {
 
     try {
         // Avisamos al servidor para que borre la Cookie
-        await fetch('/api/auth/logout', { 
+        await fetch('/api/auth/logout', {
             method: 'POST',
-            headers: getAuthHeaders() 
+            headers: getAuthHeaders()
         });
     } catch (e) {
         console.error('Error en logout de servidor');
@@ -57,7 +57,7 @@ async function logoutSession() {
     localStorage.removeItem('faen_auth_token');
     localStorage.removeItem('faen_auth_user');
     sessionStorage.clear();
-    
+
     // Redirección forzada al login
     window.location.href = 'login.html';
 }
@@ -69,14 +69,14 @@ function updateSessionActivity() {
 function startSessionTimer() {
     const lastActivityKey = 'admin_last_activity';
     sessionStorage.setItem(lastActivityKey, Date.now().toString());
-    
+
     const checkSession = setInterval(() => {
         const lastActivity = sessionStorage.getItem(lastActivityKey);
         if (!lastActivity) {
             clearInterval(checkSession);
             return;
         }
-        
+
         const elapsed = Date.now() - parseInt(lastActivity);
         if (elapsed > SESSION_TIMEOUT) {
             logoutSession();
@@ -91,7 +91,7 @@ function updateSessionTimer(elapsed) {
     const remaining = Math.max(0, Math.floor((SESSION_TIMEOUT - elapsed) / 1000));
     const minutes = Math.floor(remaining / 60);
     const seconds = remaining % 60;
-    
+
     let timerDisplay = document.getElementById('session-timer');
     if (!timerDisplay) {
         timerDisplay = document.createElement('div');
@@ -105,16 +105,16 @@ function updateSessionTimer(elapsed) {
         timerDisplay.style.padding = '5px 10px';
         timerDisplay.style.borderRadius = '4px';
         timerDisplay.style.border = '1px solid #f0ad4e';
-        
+
         const header = document.querySelector('header');
         if (header) {
             header.style.position = 'relative';
             header.appendChild(timerDisplay);
         }
     }
-    
+
     timerDisplay.textContent = 'Sesión expira en: ' + minutes + ':' + (seconds < 10 ? '0' : '') + seconds;
-    
+
     if (remaining < 60) {
         timerDisplay.style.color = '#d32f2f';
         timerDisplay.style.backgroundColor = '#ffebee';
@@ -159,7 +159,7 @@ function showLoginModal() {
 function createLogoutButton() {
     const header = document.querySelector('header');
     if (!header) return;
-    
+
     let logoutContainer = document.getElementById('logout-container');
     if (!logoutContainer) {
         logoutContainer = document.createElement('div');
@@ -170,7 +170,7 @@ function createLogoutButton() {
         header.style.position = 'relative';
         header.appendChild(logoutContainer);
     }
-    
+
     const button = document.createElement('button');
     button.id = 'logout-btn';
     button.textContent = 'Cerrar sesión';
@@ -181,19 +181,25 @@ function createLogoutButton() {
     button.style.borderRadius = '4px';
     button.style.cursor = 'pointer';
     button.style.fontSize = '14px';
-    
+
     button.addEventListener('click', (e) => {
         e.preventDefault();
         if (confirm('¿Deseas cerrar sesión?')) {
             logoutSession();
         }
     });
-    
+
     logoutContainer.innerHTML = '';
     logoutContainer.appendChild(button);
 }
 
-// ===== CAROUSEL FUNCTIONS =====
+/* ==========================================
+   CAROUSEL FUNCTIONS (Lógica Pública)
+   ========================================== */
+
+// 1. Variables Globales (Vitales para que next/prev funcionen)
+let carouselInterval;
+
 async function loadCarousel() {
     const carouselContainer = document.getElementById('carousel-container');
     const carouselTrack = document.getElementById('carousel-track');
@@ -210,17 +216,25 @@ async function loadCarousel() {
             return;
         }
 
-        carouselPhotos = photos;
+        carouselPhotos = photos; // Guardamos en la variable global
         carouselTrack.innerHTML = '';
         carouselDots.innerHTML = '';
 
         photos.forEach((photo, index) => {
             const slide = document.createElement('div');
             slide.className = 'carousel-slide';
-            slide.innerHTML = '<img src="' + escapeHtml(photo.ruta) + '" alt="' + escapeHtml(photo.titulo) + '">' +
+
+            // Normalización de ruta para evitar el error 404 en el Index
+            let src = photo.ruta || photo.url || ''; 
+            if (src && !src.startsWith('/') && !src.startsWith('http')) {
+                src = '/' + src;
+            }
+
+            slide.innerHTML = 
+                '<img src="' + src + '?v=' + Date.now() + '" alt="' + escapeHtml(photo.titulo) + '">' +
                 '<div class="carousel-slide-overlay">' +
-                '<div class="carousel-slide-title">' + escapeHtml(photo.titulo) + '</div>' +
-                '<p class="carousel-slide-date">' + escapeHtml(photo.fecha) + '</p>' +
+                    '<div class="carousel-slide-title">' + escapeHtml(photo.titulo) + '</div>' +
+                    '<p class="carousel-slide-date">' + escapeHtml(photo.fecha) + '</p>' +
                 '</div>';
             carouselTrack.appendChild(slide);
 
@@ -232,18 +246,14 @@ async function loadCarousel() {
 
         currentSlide = 0;
         updateCarouselPosition();
-        
-        setInterval(() => {
-            currentSlide = (currentSlide + 1) % carouselPhotos.length;
-            updateCarouselPosition();
-        }, 5000);
+        startAutoPlay();
 
     } catch (error) {
         console.error('Error cargando carrusel:', error);
-        carouselContainer.style.display = 'none';
     }
 }
 
+// 2. Funciones de Movimiento (Las que llaman tus botones onclick)
 function updateCarouselPosition() {
     const track = document.getElementById('carousel-track');
     if (track) {
@@ -252,11 +262,7 @@ function updateCarouselPosition() {
 
     const dots = document.querySelectorAll('.carousel-dot');
     dots.forEach((dot, index) => {
-        if (index === currentSlide) {
-            dot.classList.add('active');
-        } else {
-            dot.classList.remove('active');
-        }
+        dot.classList.toggle('active', index === currentSlide);
     });
 }
 
@@ -275,24 +281,31 @@ function previousSlide() {
 }
 
 function goToSlide(index) {
-    if (index >= 0 && index < carouselPhotos.length) {
-        currentSlide = index;
-        updateCarouselPosition();
-    }
+    currentSlide = index;
+    updateCarouselPosition();
+    startAutoPlay(); // Reinicia el tiempo si el usuario hace clic manual
 }
+
+function startAutoPlay() {
+    if (carouselInterval) clearInterval(carouselInterval);
+    carouselInterval = setInterval(nextSlide, 5000);
+}
+
+// 3. LA LLAMADA INICIAL (Esto es lo que faltaba para que "lo haga")
+document.addEventListener('DOMContentLoaded', loadCarousel);
 
 // ===== NEWS FUNCTIONS =====
 async function loadNews() {
     const newsList = document.getElementById('news-list');
     if (!newsList) return;
-    
+
     newsList.innerHTML = '<p>Cargando noticias...</p>';
-    
+
     try {
         const res = await fetch('/api/news');
         if (!res.ok) throw new Error('HTTP error');
         const newsData = await res.json();
-        
+
         if (!newsData || newsData.length === 0) {
             newsList.innerHTML = '<p>No hay noticias publicadas.</p>';
             return;
@@ -312,11 +325,11 @@ async function loadNews() {
             const newsExcerpt = escapeHtml(excerpt);
 
             let htmlContent = '';
-            
+
             if (imageSrc) {
                 htmlContent = '<a href="news.html?id=' + newsId + '"><img src="' + imageSrc + '" alt="' + newsTitle + '"></a>';
             }
-            
+
             htmlContent += '<div class="news-content">';
             htmlContent += '<div><a class="badge" href="news.html?id=' + newsId + '">NOTICIA</a></div>';
             htmlContent += '<h3><a href="news.html?id=' + newsId + '">' + newsTitle + '</a></h3>';
@@ -340,11 +353,11 @@ async function loadPreinscripcionConfig() {
             console.log('No config found');
             return;
         }
-        
+
         const config = await res.json();
         const preinscripcionItem = document.getElementById('preinscripcion-item');
         const preinscripcionLink = document.getElementById('preinscripcion-link');
-        
+
         if (preinscripcionItem && preinscripcionLink) {
             if (config.enabled) {
                 preinscripcionItem.style.display = 'block';
@@ -365,15 +378,15 @@ async function loadClaustrosInDropdown() {
             console.log('No claustros found');
             return;
         }
-        
+
         const claustros = await res.json();
         const claustroDropdown = document.getElementById('claustro-dropdown');
-        
+
         if (!claustroDropdown) {
             console.log('claustro-dropdown element not found');
             return;
         }
-        
+
         // Obtener configuración de preinscripción
         let preinscripcionConfig = {};
         try {
@@ -384,19 +397,19 @@ async function loadClaustrosInDropdown() {
         } catch (e) {
             console.log('Error loading preinscripcion config');
         }
-        
+
         // Limpiar el dropdown
         claustroDropdown.innerHTML = '';
-        
+
         console.log('Claustros cargados:', claustros);
-        
+
         // Agregar cada claustro como un submenú
         if (claustros && claustros.length > 0) {
             claustros.forEach((claustro, index) => {
                 const li = document.createElement('li');
                 li.className = 'dropdown-claustro';
                 li.dataset.claustroId = claustro.id;
-                
+
                 // Filtrar enlaces según configuración
                 let visibleLinks = claustro.links ? claustro.links.filter(link => {
                     if (link.conditional === 'preinscripcion') {
@@ -404,28 +417,28 @@ async function loadClaustrosInDropdown() {
                     }
                     return true;
                 }) : [];
-                
+
                 console.log(`Claustro ${claustro.name}: ${visibleLinks.length} enlaces visibles`);
-                
+
                 if (visibleLinks && visibleLinks.length > 0) {
                     // Si tiene enlaces, crear un submenú
                     const toggle = document.createElement('a');
                     toggle.href = '#';
                     toggle.className = 'dropdown-claustro-toggle';
                     toggle.innerHTML = `${escapeHtml(claustro.icon)} ${escapeHtml(claustro.name)} <span class="dropdown-arrow">▶</span>`;
-                    
-                    toggle.addEventListener('click', function(e) {
+
+                    toggle.addEventListener('click', function (e) {
                         e.preventDefault();
                         e.stopPropagation();
                         console.log('Click en claustro:', claustro.name);
                         li.classList.toggle('active');
                     });
-                    
+
                     li.appendChild(toggle);
-                    
+
                     const subMenu = document.createElement('ul');
                     subMenu.className = 'dropdown-submenu';
-                    
+
                     visibleLinks.forEach(link => {
                         const subLi = document.createElement('li');
                         const linkElement = document.createElement('a');
@@ -433,17 +446,17 @@ async function loadClaustrosInDropdown() {
                         linkElement.target = '_blank';
                         linkElement.rel = 'noopener';
                         linkElement.innerHTML = `<span class="nav-icon">${escapeHtml(link.icon)}</span> ${escapeHtml(link.title)}`;
-                        
-                        linkElement.addEventListener('click', function() {
+
+                        linkElement.addEventListener('click', function () {
                             setTimeout(() => {
                                 li.classList.remove('active');
                             }, 100);
                         });
-                        
+
                         subLi.appendChild(linkElement);
                         subMenu.appendChild(subLi);
                     });
-                    
+
                     li.appendChild(subMenu);
                 } else {
                     // Si no tiene enlaces, solo mostrar el texto deshabilitado
@@ -451,12 +464,12 @@ async function loadClaustrosInDropdown() {
                     disabledLink.href = '#';
                     disabledLink.className = 'disabled';
                     disabledLink.innerHTML = `${escapeHtml(claustro.icon)} ${escapeHtml(claustro.name)} (sin enlaces)`;
-                    disabledLink.addEventListener('click', function(e) {
+                    disabledLink.addEventListener('click', function (e) {
                         e.preventDefault();
                     });
                     li.appendChild(disabledLink);
                 }
-                
+
                 claustroDropdown.appendChild(li);
             });
         }
@@ -468,7 +481,7 @@ async function loadClaustrosInDropdown() {
 async function loadConfigPage() {
     const preinscripcionEnabled = document.getElementById('config-preinscripcion-enabled');
     const preinscripcionUrl = document.getElementById('config-preinscripcion-url');
-    
+
     if (!preinscripcionEnabled || !preinscripcionUrl) return;
 
     try {
@@ -489,13 +502,13 @@ async function loadConfigPage() {
 async function loadAdminNews() {
     const adminList = document.getElementById('admin-news-list');
     if (!adminList) return;
-    
+
     try {
         const res = await fetch('/api/news');
         const data = await res.json();
-        
+
         adminList.innerHTML = '';
-        
+
         if (!data || data.length === 0) {
             adminList.innerHTML = '<tr><td colspan="5" class="text-center">No hay noticias publicadas aún</td></tr>';
             return;
@@ -503,7 +516,7 @@ async function loadAdminNews() {
 
         data.slice().reverse().forEach(news => {
             const row = document.createElement('tr');
-            
+
             const imageSrc = news.image || '';
             let imageCell = '<td>';
             if (imageSrc) {
@@ -556,7 +569,7 @@ async function editNews(id) {
         const res = await fetch('/api/news');
         const all = await res.json();
         const news = all.find(x => x.id === id);
-        
+
         if (!news) {
             alert('Noticia no encontrada');
             return;
@@ -625,25 +638,38 @@ async function loadGaleria() {
         fotos.forEach(foto => {
             const item = document.createElement('div');
             item.className = 'galeria-item';
+
+            // --- LÓGICA DE RUTA ABSOLUTA ---
+            // Usamos 'foto.ruta' o 'foto.url' según lo que envíe tu backend.
+            // Si el backend envía "uploads/archivo.jpg", le ponemos la "/" inicial.
+            let src = foto.ruta || foto.url || ''; 
+            if (src && !src.startsWith('/') && !src.startsWith('http')) {
+                src = '/' + src;
+            }
+
+            const titulo = escapeHtml(foto.titulo || 'Sin título');
+            const fecha = escapeHtml(foto.fecha || '');
+
             item.innerHTML = '<div class="galeria-img-wrapper">' +
-                '<img src="' + foto.ruta + '" alt="' + escapeHtml(foto.titulo) + '" class="galeria-img">' +
+                '<img src="' + src + '?v=' + Date.now() + '" alt="' + titulo + '" class="galeria-img" onerror="this.src=\'/uploads/default-image.png\'">' +
                 '<div class="galeria-overlay">' +
-                '<button class="btn-galeria-delete" data-id="' + foto.id + '">🗑️ Eliminar</button>' +
+                // Usamos span pointer-events:none para que el clic siempre caiga en el botón, no en el emoji
+                '<button class="btn-galeria-delete" data-id="' + foto.id + '"><span style="pointer-events:none">🗑️</span> Eliminar</button>' +
                 '</div>' +
                 '</div>' +
                 '<div class="galeria-info">' +
-                '<p class="galeria-titulo">' + escapeHtml(foto.titulo) + '</p>' +
-                '<p class="galeria-fecha">' + escapeHtml(foto.fecha) + '</p>' +
+                '<p class="galeria-titulo">' + titulo + '</p>' +
+                '<p class="galeria-fecha">' + fecha + '</p>' +
                 '</div>';
             galeriaGrid.appendChild(item);
         });
 
+        // Eventos con currentTarget para mayor seguridad
         document.querySelectorAll('.btn-galeria-delete').forEach(btn => {
-            btn.addEventListener('click', async (e) => {
-                e.preventDefault();
-                const id = e.target.dataset.id;
+            btn.onclick = async (e) => {
+                const id = e.currentTarget.getAttribute('data-id');
                 await deleteFoto(id);
-            });
+            };
         });
 
     } catch (err) {
@@ -653,24 +679,25 @@ async function loadGaleria() {
 }
 
 async function deleteFoto(id) {
-    if (!confirm('¿Eliminar esta foto?')) {
+    if (!confirm('¿Estás seguro de que deseas eliminar esta foto permanentemente?')) {
         return;
     }
 
     try {
         const res = await fetch('/api/galeria/' + id, {
             method: 'DELETE',
-            headers: getAuthHeaders()
+            headers: typeof getAuthHeaders === 'function' ? getAuthHeaders() : {}
         });
 
         if (res.ok) {
-            alert('Foto eliminada');
+            alert('Foto eliminada correctamente');
             await loadGaleria();
         } else {
-            alert('Error al eliminar la foto');
+            const error = await res.json().catch(() => ({}));
+            alert('Error al eliminar: ' + (error.message || 'No se pudo borrar el archivo'));
         }
     } catch (error) {
-        alert('Error: ' + error.message);
+        alert('Error de conexión: ' + error.message);
     }
 }
 
@@ -678,13 +705,13 @@ async function deleteFoto(id) {
 async function loadAdminCarreras() {
     const adminCarrerasList = document.getElementById('admin-carreras-list');
     if (!adminCarrerasList) return;
-    
+
     try {
         const res = await fetch('/api/carreras');
         const data = await res.json();
-        
+
         adminCarrerasList.innerHTML = '';
-        
+
         if (!data || data.length === 0) {
             adminCarrerasList.innerHTML = '<tr><td colspan="6" class="text-center">No hay carreras aún</td></tr>';
             return;
@@ -692,7 +719,7 @@ async function loadAdminCarreras() {
 
         data.forEach(carrera => {
             const row = document.createElement('tr');
-            
+
             const title = escapeHtml(carrera.title);
             const code = escapeHtml(carrera.code);
             const description = escapeHtml(carrera.description || '');
@@ -744,7 +771,7 @@ async function editCarrera(id) {
         const res = await fetch('/api/carreras');
         const all = await res.json();
         const carrera = all.find(x => x.id === id);
-        
+
         if (!carrera) {
             alert('Carrera no encontrada');
             return;
@@ -789,73 +816,88 @@ async function deleteCarrera(id) {
 }
 
 // ===== AUTORIDADES FUNCTIONS =====
+// --- SECCIÓN AUTORIDADES ---
+
+
 async function loadAdminAutoridades() {
     const adminAutoridadesList = document.getElementById('admin-autoridades-list');
     if (!adminAutoridadesList) return;
-    
+
     try {
         const res = await fetch('/api/autoridades');
         const data = await res.json();
-        
         adminAutoridadesList.innerHTML = '';
-        
-        if (!data || data.length === 0) {
-            adminAutoridadesList.innerHTML = '<tr><td colspan="6" class="text-center">No hay autoridades aún</td></tr>';
-            return;
-        }
 
         data.forEach(autoridad => {
             const row = document.createElement('tr');
             
-            const nombre = escapeHtml(autoridad.nombre);
-            const cargo = escapeHtml(autoridad.cargo);
-            const email = escapeHtml(autoridad.email || '-');
-            const telefono = escapeHtml(autoridad.telefono || '-');
-            const fotoHtml = autoridad.foto ? 
-                '<img src="' + autoridad.foto + '" alt="' + nombre + '" class="tabla-imagen">' : 
-                '<div style="width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; background: #e1e4e8; border-radius: 50%;">👤</div>';
+            // Validamos la foto: si es nula, vacía o el string del error, usamos el placeholder
+            const tieneFoto = autoridad.foto && 
+                              autoridad.foto !== '' && 
+                              autoridad.foto !== '/uploads/default-avatar.png';
 
-            row.innerHTML = '<td>' + fotoHtml + '</td>' +
-                '<td><div class="tabla-titulo">' + nombre + '</div></td>' +
-                '<td>' + cargo + '</td>' +
-                '<td>' + email + '</td>' +
-                '<td>' + telefono + '</td>' +
-                '<td><div class="tabla-acciones">' +
-                '<button class="btn btn-edit edit-autoridad-btn" data-id="' + autoridad.id + '">✏️ Editar</button>' +
-                '<button class="btn btn-danger delete-autoridad-btn" data-id="' + autoridad.id + '">🗑️ Eliminar</button>' +
-                '</div></td>';
+            const fotoHtml = tieneFoto 
+                ? `<img src="${autoridad.foto}" 
+                        class="tabla-imagen" 
+                        style="width:50px; height:50px; border-radius:50%; object-fit:cover;"
+                        onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(autoridad.nombre)}&background=random'">`
+                : `<div style="width:50px; height:50px; border-radius:50%; background:#eee; display:flex; align-items:center; justify-content:center;">👤</div>`;
 
+            row.innerHTML = `
+                <td>${fotoHtml}</td>
+                <td><strong>${autoridad.nombre}</strong></td>
+                <td>${autoridad.cargo}</td>
+                <td>${autoridad.email || '-'}</td>
+                <td>
+                    <button class="btn-edit" onclick="editAutoridad('${autoridad.id}')">✏️</button>
+                    <button class="btn-danger" onclick="deleteAutoridad('${autoridad.id}')">🗑️</button>
+                </td>
+            `;
             adminAutoridadesList.appendChild(row);
         });
-
-        document.querySelectorAll('.edit-autoridad-btn').forEach(btn => {
-            btn.addEventListener('click', async (e) => {
-                e.preventDefault();
-                const id = e.target.dataset.id;
-                await editAutoridad(id);
-            });
-        });
-
-        document.querySelectorAll('.delete-autoridad-btn').forEach(btn => {
-            btn.addEventListener('click', async (e) => {
-                e.preventDefault();
-                const id = e.target.dataset.id;
-                await deleteAutoridad(id);
-            });
-        });
-
     } catch (err) {
-        console.error('Error cargando autoridades:', err);
-        adminAutoridadesList.innerHTML = '<tr><td colspan="6" class="text-center">Error cargando autoridades</td></tr>';
+        console.error("Error cargando tabla:", err);
     }
 }
 
+// Función auxiliar para que los botones funcionen después de recargar la tabla
+function vincularEventosAutoridades() {
+    document.querySelectorAll('.edit-autoridad-btn').forEach(btn => {
+        btn.onclick = (e) => {
+            const id = e.currentTarget.getAttribute('data-id');
+            editAutoridad(id);
+        };
+    });
+
+    document.querySelectorAll('.delete-autoridad-btn').forEach(btn => {
+        btn.onclick = (e) => {
+            const id = e.currentTarget.getAttribute('data-id');
+            // Llamamos a la función de eliminar que creamos anteriormente
+            if (typeof removeAutoridad === 'function') {
+                removeAutoridad(id);
+            } else {
+                console.error("La función removeAutoridad no existe en app.js");
+            }
+        };
+    });
+}
+
+// Función auxiliar para que los botones de eliminar y editar funcionen siempre
+function rebindAutoridadEvents() {
+    document.querySelectorAll('.edit-autoridad-btn').forEach(btn => {
+        btn.onclick = (e) => editAutoridad(e.currentTarget.getAttribute('data-id'));
+    });
+
+    document.querySelectorAll('.delete-autoridad-btn').forEach(btn => {
+        btn.onclick = (e) => removeAutoridad(e.currentTarget.getAttribute('data-id'));
+    });
+}
 async function editAutoridad(id) {
     try {
-        const res = await fetch('/api/autoridades');
-        const all = await res.json();
-        const autoridad = all.find(x => x.id === id);
-        
+        // Optimización: Pedimos la autoridad específica al servidor en lugar de buscar en todo el array
+        const res = await fetch('/api/autoridades/' + id);
+        const autoridad = await res.json();
+
         if (!autoridad) {
             alert('Autoridad no encontrada');
             return;
@@ -865,28 +907,24 @@ async function editAutoridad(id) {
         document.getElementById('autoridad-cargo').value = autoridad.cargo;
         document.getElementById('autoridad-email').value = autoridad.email || '';
         document.getElementById('autoridad-telefono').value = autoridad.telefono || '';
-        
-        // Mostrar foto previa si existe
+
         const fotoPreview = document.getElementById('autoridad-foto-preview');
         if (fotoPreview) {
-            if (autoridad.foto) {
-                fotoPreview.innerHTML = '<img src="' + autoridad.foto + '" alt="Foto actual" style="max-width: 150px; max-height: 150px; border-radius: 50%; object-fit: cover;">';
-            } else {
-                fotoPreview.innerHTML = '';
-            }
-        }
-        
-        document.getElementById('modal-autoridad-titulo').textContent = 'Editar Autoridad';
+            let fotoUrl = autoridad.foto;
+            if (!fotoUrl || fotoUrl === 'undefined') fotoUrl = '/uploads/default-avatar.png';
+            const finalPath = fotoUrl.startsWith('/') ? fotoUrl : '/' + fotoUrl;
 
+            fotoPreview.innerHTML = '<img src="' + finalPath + '?v=' + Date.now() + '" alt="Foto actual" style="max-width: 150px; max-height: 150px; border-radius: 50%; object-fit: cover; border: 2px solid #ddd;">';
+        }
+
+        document.getElementById('modal-autoridad-titulo').textContent = 'Editar Autoridad';
         editingAutoridadId = id;
-        const modal = document.getElementById('modal-autoridad');
-        modal.classList.add('active');
+        document.getElementById('modal-autoridad').classList.add('active');
     } catch (err) {
         alert('Error cargando autoridad: ' + err.message);
     }
 }
-
-async function deleteAutoridad(id) {
+async function removeAutoridad(id) {
     if (!confirm('¿Estás seguro de que deseas eliminar esta autoridad?')) {
         return;
     }
@@ -894,32 +932,34 @@ async function deleteAutoridad(id) {
     try {
         const res = await fetch('/api/autoridades/' + id, {
             method: 'DELETE',
-            headers: getAuthHeaders()
+            headers: typeof getAuthHeaders === 'function' ? getAuthHeaders() : {}
         });
 
         if (res.ok) {
-            alert('Autoridad eliminada correctamente');
-            await loadAdminAutoridades();
+            alert('Autoridad eliminada con éxito');
+            await loadAdminAutoridades(); // Recargar la tabla
         } else {
-            const err = await res.json().catch(() => null);
-            alert('Error al eliminar: ' + (err && err.error ? err.error : res.statusText));
+            const errorData = await res.json().catch(() => ({}));
+            alert('Error al eliminar: ' + (errorData.message || 'No se pudo completar la acción'));
         }
     } catch (error) {
-        alert('Error al eliminar la autoridad: ' + error.message);
+        console.error('Error de red al eliminar:', error);
+        alert('Error de conexión con el servidor');
     }
 }
+
 
 // ===== MENSAJES FUNCTIONS =====
 async function loadAdminMensajes() {
     const adminMensajesList = document.getElementById('admin-mensajes-list');
     if (!adminMensajesList) return;
-    
+
     try {
         const res = await fetch('/api/mensajes', {
             headers: getAuthHeaders()
         });
         const data = await res.json();
-        
+
         adminMensajesList.innerHTML = '';
 
         const noLeidos = data.filter(m => !m.leido).length;
@@ -927,7 +967,7 @@ async function loadAdminMensajes() {
         if (indicator) {
             indicator.textContent = noLeidos;
         }
-        
+
         if (!data || data.length === 0) {
             adminMensajesList.innerHTML = '<tr><td colspan="5" class="text-center">No hay mensajes</td></tr>';
             return;
@@ -935,7 +975,7 @@ async function loadAdminMensajes() {
 
         data.reverse().forEach(mensaje => {
             const row = document.createElement('tr');
-            
+
             const nombre = escapeHtml(mensaje.nombre);
             const asunto = escapeHtml(mensaje.asunto);
             const fecha = escapeHtml(mensaje.fecha);
@@ -1020,7 +1060,7 @@ async function viewMensaje(id) {
 
         const body = document.getElementById('modal-mensaje-body');
         const textoMensaje = mensaje.mensaje || 'Sin contenido';
-        
+
         body.innerHTML = '<div style="padding: 20px;">' +
             '<p><strong>De:</strong> ' + escapeHtml(mensaje.nombre) + '</p>' +
             '<p><strong>Email:</strong> <a href="mailto:' + escapeHtml(mensaje.email) + '">' + escapeHtml(mensaje.email) + '</a></p>' +
@@ -1075,70 +1115,58 @@ async function deleteMensaje(id) {
 async function loadAdminDocumentos() {
     const adminDocsList = document.getElementById('admin-docs-list');
     if (!adminDocsList) return;
-    
+
     try {
         const res = await fetch('/api/documents');
+
+        if (!res.ok) {
+            throw new Error(`Error del servidor: ${res.status}`);
+        }
+
         const data = await res.json();
-        
         adminDocsList.innerHTML = '';
-        
+
         if (!data || data.length === 0) {
             adminDocsList.innerHTML = '<tr><td colspan="5" class="text-center">No hay documentos subidos aún</td></tr>';
             return;
         }
 
-        data.slice().reverse().forEach(doc => {
-            const row = document.createElement('tr');
-            
-            const title = escapeHtml(doc.title);
-            const category = escapeHtml(doc.category || 'Sin categoría');
-            const description = escapeHtml(doc.description || '');
-            const date = escapeHtml(doc.uploadedAt || '');
+        // --- AQUÍ LA LÓGICA DE RENDERIZADO COMPLETA ---
+        data.forEach(doc => {
+            const tr = document.createElement('tr');
 
-            row.innerHTML = '<td><div class="tabla-titulo">' + title + '</div></td>' +
-                '<td>' + category + '</td>' +
-                '<td><div class="tabla-descripcion">' + description + '</div></td>' +
-                '<td>' + date + '</td>' +
-                '<td><div class="tabla-acciones">' +
-                '<button class="btn btn-edit edit-doc-btn" data-id="' + doc.id + '">✏️ Editar</button>' +
-                '<button class="btn btn-danger delete-doc-btn" data-id="' + doc.id + '">🗑️ Eliminar</button>' +
-                '</div></td>';
-
-            adminDocsList.appendChild(row);
-        });
-
-        document.querySelectorAll('.edit-doc-btn').forEach(btn => {
-            btn.addEventListener('click', async (e) => {
-                e.preventDefault();
-                const id = e.target.dataset.id;
-                await editDocumento(id);
-            });
-        });
-
-        document.querySelectorAll('.delete-doc-btn').forEach(btn => {
-            btn.addEventListener('click', async (e) => {
-                e.preventDefault();
-                const id = e.target.dataset.id;
-                await deleteDocumento(id);
-            });
+            // Ajustamos las propiedades según lo que vimos en el JSON (title, category, etc.)
+            tr.innerHTML = `
+                <td><strong>${doc.title || 'Sin título'}</strong></td>
+                <td><span class="badge">${doc.category || 'General'}</span></td>
+                <td>${doc.description || 'Sin descripción'}</td>
+                <td>${doc.uploadedAt ? new Date(doc.uploadedAt).toLocaleDateString() : 'N/A'}</td>
+                <td class="actions">
+                    <div class="btn-group">
+                        <a href="${doc.filePath}" target="_blank" class="btn-small btn-view" title="Ver archivo">👁️</a>
+                        
+                        <button onclick="editarDocumento('${doc.id}')" class="btn-small btn-edit" title="Editar">✏️</button>
+                        
+                        <button onclick="eliminarDocumento('${doc.id}')" class="btn-small btn-delete" title="Eliminar">🗑️</button>
+                    </div>
+                </td>
+            `;
+            adminDocsList.appendChild(tr);
         });
 
     } catch (err) {
         console.error('Error cargando documentos:', err);
-        adminDocsList.innerHTML = '<tr><td colspan="5" class="text-center">Error cargando documentos</td></tr>';
+        adminDocsList.innerHTML = `<tr><td colspan="5" class="text-center text-danger">Error: ${err.message}</td></tr>`;
     }
 }
 
 async function editDocumento(id) {
     try {
-        const res = await fetch('/api/documents');
-        const all = await res.json();
-        const doc = all.find(x => x.id === id);
-        
-        if (!doc) {
-            alert('Documento no encontrado');
-            return;
-        }
+        // OPTIMIZACIÓN: Pedimos solo el documento que necesitamos
+        const res = await fetch('/api/documents/' + id);
+        if (!res.ok) throw new Error('No se pudo obtener el documento');
+
+        const doc = await res.json();
 
         document.getElementById('doc-title').value = doc.title;
         document.getElementById('doc-category').value = doc.category || '';
@@ -1152,30 +1180,6 @@ async function editDocumento(id) {
         alert('Error cargando documento: ' + err.message);
     }
 }
-
-async function deleteDocumento(id) {
-    if (!confirm('¿Estás seguro de que deseas eliminar este documento?')) {
-        return;
-    }
-
-    try {
-        const res = await fetch('/api/documents/' + id, {
-            method: 'DELETE',
-            headers: getAuthHeaders()
-        });
-
-        if (res.ok) {
-            alert('Documento eliminado correctamente');
-            await loadAdminDocumentos();
-        } else {
-            const err = await res.json().catch(() => null);
-            alert('Error al eliminar: ' + (err && err.error ? err.error : res.statusText));
-        }
-    } catch (error) {
-        alert('Error al eliminar el documento: ' + error.message);
-    }
-}
-
 // ===== PUBLIC PAGE DOMEVENTLISTENER =====
 document.addEventListener('DOMContentLoaded', () => {
     // Mobile menu for all pages
@@ -1201,13 +1205,13 @@ document.addEventListener('DOMContentLoaded', () => {
         toggle.addEventListener('click', (e) => {
             e.preventDefault();
             const dropdown = toggle.closest('.dropdown');
-            
+
             document.querySelectorAll('.dropdown.active').forEach(openDropdown => {
                 if (openDropdown !== dropdown) {
                     openDropdown.classList.remove('active');
                 }
             });
-            
+
             dropdown.classList.toggle('active');
         });
     });
@@ -1265,7 +1269,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     document.getElementById('news-title').textContent = news.title || 'Sin título';
                     document.getElementById('news-date').textContent = 'Publicado: ' + (news.date || 'Sin fecha');
                     document.getElementById('news-body').innerHTML = '<p>' + escapeHtml(news.description || 'Sin descripción') + '</p>';
-                    
+
                     const imageContainer = document.getElementById('news-image-container');
                     if (news.image) {
                         imageContainer.innerHTML = '<img src="' + news.image + '" alt="' + escapeHtml(news.title) + '" class="news-detail-img">';
@@ -1285,9 +1289,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // ===== ADMIN PAGE DOMEVENTLISTENER =====
 document.addEventListener('DOMContentLoaded', async () => {
-    const isAdminPage = window.location.pathname.includes('admin.html') || 
-                       document.querySelector('.dashboard-container') !== null;
-    
+    const isAdminPage = window.location.pathname.includes('admin.html') ||
+        document.querySelector('.dashboard-container') !== null;
+
     if (!isAdminPage) return;
 
     // Admin authentication (compatible with JWT-based auth)
@@ -1328,10 +1332,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         sessionStorage.setItem('admin_last_activity', Date.now().toString());
     }
-    
+
     startSessionTimer();
     createLogoutButton();
-    
+
     document.addEventListener('click', updateSessionActivity);
     document.addEventListener('keypress', updateSessionActivity);
 
@@ -1360,7 +1364,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         item.addEventListener('click', (e) => {
             const href = item.getAttribute('href');
             if (href === 'index.html') return;
-            
+
             e.preventDefault();
             const sectionId = item.dataset.section;
             if (!sectionId) return;
@@ -1466,7 +1470,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (newsForm) {
         newsForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            
+
             const title = document.getElementById('news-title').value;
             const description = document.getElementById('news-description').value;
             const date = document.getElementById('news-date').value;
@@ -1476,7 +1480,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             formData.append('title', title);
             formData.append('description', description);
             formData.append('date', date);
-            
+
             if (imageInput.files && imageInput.files[0]) {
                 formData.append('image', imageInput.files[0]);
             }
@@ -1486,13 +1490,22 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             try {
                 console.log('Enviando noticia con método:', method, 'URL:', url);
-                console.log('Headers de autenticación:', getAuthHeaders());
+
+                // 1. Obtenemos los headers (que traen el JSON por defecto)
+                const headers = getAuthHeaders();
+
+                // 2. IMPORTANTE: Eliminamos el Content-Type para que el navegador 
+                // gestione el FormData correctamente con su propio "boundary"
+                delete headers['Content-Type'];
+
+                console.log('Headers enviados (limpios):', headers);
+
                 const res = await fetch(url, {
                     method: method,
-                    body: formData,
-                    headers: getAuthHeaders()
+                    body: formData, // Al ser FormData, el navegador pondrá el Content-Type correcto
+                    headers: headers
                 });
-                
+
                 if (res.ok) {
                     alert(editingId ? 'Noticia actualizada correctamente' : 'Noticia creada correctamente');
                     closeModal();
@@ -1503,13 +1516,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                     alert('Error: ' + text);
                 }
             } catch (error) {
+                console.error('Error fetch:', error);
                 alert('Error al guardar la noticia: ' + error.message);
             }
         });
     }
 
     // GALERIA MODAL SETUP
-    const modalFoto = document.getElementById('modal-foto');
+const modalFoto = document.getElementById('modal-foto');
     const btnSubirFoto = document.getElementById('btn-subir-foto');
     const modalFotoClose = document.getElementById('modal-foto-close');
     const fotoFormCancel = document.getElementById('foto-form-cancel');
@@ -1518,34 +1532,32 @@ document.addEventListener('DOMContentLoaded', async () => {
     const fotoFileName = document.getElementById('foto-file-name');
     const fotoPreview = document.getElementById('foto-preview');
 
+    // Función para cerrar y limpiar el modal
+    const closeFotoModal = () => {
+        if (modalFoto) modalFoto.classList.remove('active');
+        if (fotoForm) fotoForm.reset();
+        if (fotoPreview) fotoPreview.innerHTML = '';
+        if (fotoFileName) fotoFileName.textContent = 'Ningún archivo seleccionado';
+    };
+
     if (btnSubirFoto) {
         btnSubirFoto.addEventListener('click', (e) => {
             e.preventDefault();
-            if (fotoForm) fotoForm.reset();
-            fotoPreview.innerHTML = '';
-            fotoFileName.textContent = 'Ningún archivo seleccionado';
+            closeFotoModal(); // Limpiamos antes de abrir por seguridad
             modalFoto.classList.add('active');
         });
     }
-
-    const closeFotoModal = () => {
-        modalFoto.classList.remove('active');
-        if (fotoForm) fotoForm.reset();
-        fotoPreview.innerHTML = '';
-        fotoFileName.textContent = 'Ningún archivo seleccionado';
-    };
 
     if (modalFotoClose) modalFotoClose.addEventListener('click', closeFotoModal);
     if (fotoFormCancel) fotoFormCancel.addEventListener('click', closeFotoModal);
 
     if (modalFoto) {
         modalFoto.addEventListener('click', (e) => {
-            if (e.target === modalFoto) {
-                closeFotoModal();
-            }
+            if (e.target === modalFoto) closeFotoModal();
         });
     }
 
+    // Previsualización de la imagen seleccionada
     if (fotoFileInput) {
         fotoFileInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
@@ -1553,7 +1565,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 fotoFileName.textContent = file.name;
                 const reader = new FileReader();
                 reader.onload = (event) => {
-                    fotoPreview.innerHTML = '<img src="' + event.target.result + '" alt="Preview">';
+                    // Mantenemos las rutas relativas en la previsualización (base64)
+                    fotoPreview.innerHTML = '<img src="' + event.target.result + '" alt="Preview" style="max-width: 100%; border-radius: 8px;">';
                 };
                 reader.readAsDataURL(file);
             } else {
@@ -1566,8 +1579,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (fotoForm) {
         fotoForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            
-            const titulo = document.getElementById('foto-titulo').value || 'Sin título';
+
+            const tituloInput = document.getElementById('foto-titulo');
+            const titulo = tituloInput ? tituloInput.value.trim() : 'Sin título';
             const fileInput = document.getElementById('foto-file');
 
             if (!fileInput.files || !fileInput.files[0]) {
@@ -1576,26 +1590,40 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
 
             const formData = new FormData();
-            formData.append('titulo', titulo);
-            formData.append('foto', fileInput.files[0]);
+            // SINCRONIZACIÓN: Usamos 'imagen' para que coincida con el FileInterceptor del Controller
+            formData.append('image', fileInput.files[0]);
+            formData.append('titulo', titulo || 'Sin título');
+
+            // Obtenemos cabeceras (Token)
+            const headers = typeof getAuthHeaders === 'function' ? getAuthHeaders() : {};
+            
+            // ELIMINAR Content-Type: El navegador debe generar el boundary de multipart/form-data solo
+            if (headers['Content-Type']) {
+                delete headers['Content-Type'];
+            }
 
             try {
-                const res = await fetch('/api/galeria/subir', {
+                // Ajusta la URL si tu endpoint es '/api/galeria' o '/api/galeria/upload'
+                const res = await fetch('/api/galeria/upload', {
                     method: 'POST',
-                    body: formData,
-                    headers: getAuthHeaders()
+                    headers: headers,
+                    body: formData
                 });
-                
+
                 if (res.ok) {
-                    alert('Foto subida correctamente');
+                    alert('Foto subida con éxito');
                     closeFotoModal();
-                    await loadGaleria();
+                    // Recargamos la grilla de la galería para ver el nuevo elemento
+                    if (typeof loadGaleria === 'function') {
+                        await loadGaleria();
+                    }
                 } else {
-                    const text = await res.text();
-                    alert('Error: ' + text);
+                    const errorData = await res.json().catch(() => ({}));
+                    alert('Error al subir: ' + (errorData.message || 'Error en el servidor'));
                 }
             } catch (error) {
-                alert('Error al subir la foto: ' + error.message);
+                console.error('Error de red al subir foto:', error);
+                alert('No se pudo conectar con el servidor');
             }
         });
     }
@@ -1637,7 +1665,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (carreraForm) {
         carreraForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            
+
             const title = document.getElementById('carrera-title').value.trim();
             const code = document.getElementById('carrera-code').value.trim();
             const description = document.getElementById('carrera-description').value.trim();
@@ -1660,7 +1688,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             const method = editingCarreraId ? 'PUT' : 'POST';
             const url = editingCarreraId ? '/api/carreras/' + editingCarreraId : '/api/carreras';
-            
+
             try {
                 // Leer documento
                 const documentoFile = documentoInput.files[0];
@@ -1693,9 +1721,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                     documento: documentoBase64,
                     foto: fotoBase64
                 };
-                
+
                 console.log('Enviando carrera con documento y foto');
-                
+
                 const res = await fetch(url, {
                     method: method,
                     headers: {
@@ -1704,7 +1732,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     },
                     body: JSON.stringify(payload)
                 });
-                
+
                 if (res.ok) {
                     alert(editingCarreraId ? 'Carrera actualizada correctamente' : 'Carrera creada correctamente');
                     closeCarreraModal();
@@ -1727,7 +1755,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         carreraFotoInput.addEventListener('change', (e) => {
             const fileName = e.target.files && e.target.files.length > 0 ? e.target.files[0].name : 'Ningún archivo seleccionado';
             document.getElementById('carrera-foto-name').textContent = fileName;
-            
+
             if (e.target.files && e.target.files.length > 0) {
                 const reader = new FileReader();
                 reader.onload = (evt) => {
@@ -1784,10 +1812,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             const file = e.target.files[0];
             const fotoPreview = document.getElementById('autoridad-foto-preview');
             const fotoName = document.getElementById('autoridad-foto-name');
-            
+
             if (file) {
                 fotoName.textContent = file.name;
-                
+
                 const reader = new FileReader();
                 reader.onload = (event) => {
                     fotoPreview.innerHTML = '<img src="' + event.target.result + '" alt="Preview" style="max-width: 150px; max-height: 150px; border-radius: 50%; object-fit: cover;">';
@@ -1811,7 +1839,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (autoridadForm) {
         autoridadForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            
+
             const nombre = document.getElementById('autoridad-nombre').value.trim();
             const cargo = document.getElementById('autoridad-cargo').value.trim();
             const email = document.getElementById('autoridad-email').value.trim();
@@ -1832,32 +1860,32 @@ document.addEventListener('DOMContentLoaded', async () => {
             let foto = null;
             if (fotoInput && fotoInput.files && fotoInput.files[0]) {
                 const file = fotoInput.files[0];
-                
+
                 // Limitar tamaño de imagen
                 if (file.size > 500000) {
                     alert('La imagen es muy grande. Por favor usa una imagen menor a 500KB');
                     return;
                 }
-                
+
                 // Usar Promise para esperar a que se lea la foto
                 foto = await new Promise((resolve, reject) => {
                     const reader = new FileReader();
-                    
+
                     reader.onload = (event) => {
                         resolve(event.target.result);
                     };
-                    
+
                     reader.onerror = () => {
                         reject(new Error('Error al leer la foto'));
                     };
-                    
+
                     reader.readAsDataURL(file);
                 }).catch(err => {
                     alert(err.message);
                     return null;
                 });
             }
-            
+
             if (foto !== null || !fotoInput || !fotoInput.files || !fotoInput.files[0]) {
                 await guardarAutoridad(nombre, cargo, email, telefono, foto);
             }
@@ -1867,12 +1895,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     async function guardarAutoridad(nombre, cargo, email, telefono, foto) {
         const method = editingAutoridadId ? 'PUT' : 'POST';
         const url = editingAutoridadId ? '/api/autoridades/' + editingAutoridadId : '/api/autoridades';
-        
+
         const payload = {
             nombre: nombre.trim(),
             cargo: cargo.trim()
         };
-        
+
         // Solo agregar campos opcionales si tienen valor
         if (email && email.trim()) payload.email = email.trim();
         if (telefono && telefono.trim()) payload.telefono = telefono.trim();
@@ -1880,12 +1908,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             console.log('Foto tamaño:', foto.length, 'bytes');
             payload.foto = foto;
         }
-        
+
         console.log('Enviando payload completo:', {
             ...payload,
             foto: payload.foto ? `foto base64 (${payload.foto.length} bytes)` : null
         });
-        
+
         try {
             const res = await fetch(url, {
                 method: method,
@@ -1895,7 +1923,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 },
                 body: JSON.stringify(payload)
             });
-            
+
             if (res.ok) {
                 alert(editingAutoridadId ? 'Autoridad actualizada correctamente' : 'Autoridad creada correctamente');
                 closeAutoridadModal();
@@ -1993,7 +2021,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (docForm) {
         docForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            
+
             const title = document.getElementById('doc-title').value;
             const category = document.getElementById('doc-category').value;
             const description = document.getElementById('doc-description').value;
@@ -2008,27 +2036,36 @@ document.addEventListener('DOMContentLoaded', async () => {
             formData.append('title', title);
             formData.append('category', category);
             formData.append('description', description);
+            // El campo se llama 'file' para coincidir con el interceptor del backend
             formData.append('file', fileInput.files[0]);
 
             const method = editingDocId ? 'PUT' : 'POST';
-            const url = editingDocId ? '/api/documents/' + editingDocId : '/api/documents';
-            
+            const url = editingDocId ? `/api/documents/${editingDocId}` : '/api/documents';
+
+            // Preparamos los headers de autenticación
+            const headers = getAuthHeaders();
+            // Eliminamos el Content-Type para que el navegador use 'multipart/form-data' correctamente
+            delete headers['Content-Type'];
+
             try {
                 const res = await fetch(url, {
                     method: method,
                     body: formData,
-                    headers: getAuthHeaders()
+                    headers: headers
                 });
-                
+
                 if (res.ok) {
                     alert(editingDocId ? 'Documento actualizado correctamente' : 'Documento creado correctamente');
                     closeDocModal();
+                    // Refrescamos la tabla para ver el nuevo archivo
                     await loadAdminDocumentos();
                 } else {
-                    const text = await res.text();
-                    alert('Error: ' + text);
+                    // Intentamos obtener el error detallado del backend
+                    const errorData = await res.json().catch(() => ({ message: 'Error desconocido' }));
+                    alert('Error: ' + (errorData.message || 'Error en el servidor'));
                 }
             } catch (error) {
+                console.error('Error al guardar:', error);
                 alert('Error al guardar el documento: ' + error.message);
             }
         });
@@ -2117,7 +2154,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    window.editClaustroLink = async function(claustroId, linkId, title, url, icon) {
+    window.editClaustroLink = async function (claustroId, linkId, title, url, icon) {
         const newTitle = prompt('Nombre del enlace:', decodeURIComponent(title));
         if (!newTitle) return;
 
@@ -2148,7 +2185,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     };
 
-    window.deleteClaustroLink = async function(claustroId, linkId) {
+    window.deleteClaustroLink = async function (claustroId, linkId) {
         if (!confirm('¿Estás seguro de que deseas eliminar este enlace?')) return;
 
         try {
@@ -2237,7 +2274,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     document.getElementById('claustro-link-title').value = '';
                     document.getElementById('claustro-link-url').value = '';
                     document.getElementById('claustro-link-icon').value = '';
-                    
+
                     await loadClaustroLinks(claustroId);
                     await loadClaustrosInDropdown();
                 } else {
@@ -2252,3 +2289,48 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Load initial admin data
     await loadAdminNews();
 });
+// Estas funciones se declaran en window para que el HTML (onclick) pueda verlas
+window.editarDocumento = async function (id) {
+    try {
+        const res = await fetch(`/api/documents/${id}`);
+        const doc = await res.json();
+
+        editingDocId = id; // Usamos la variable global de tu app.js
+
+        // Llenar el formulario del modal
+        document.getElementById('doc-title').value = doc.title;
+        document.getElementById('doc-category').value = doc.category;
+        document.getElementById('doc-description').value = doc.description;
+        document.getElementById('doc-file-name').textContent = 'Archivo: ' + doc.fileName;
+
+        // El PDF no es obligatorio al editar
+        document.getElementById('doc-file').required = false;
+
+        document.getElementById('modal-doc-titulo').textContent = 'Editar Documento';
+        document.getElementById('modal-documento').classList.add('active');
+    } catch (error) {
+        alert('Error al obtener datos del documento');
+    }
+};
+
+window.eliminarDocumento = async function (id) {
+    if (!confirm('¿Estás seguro de eliminar este documento permanentemente?')) return;
+
+    try {
+        const res = await fetch(`/api/documents/${id}`, {
+            method: 'DELETE',
+            headers: getAuthHeaders()
+        });
+
+        if (res.ok) {
+            alert('Documento eliminado correctamente');
+            if (typeof loadAdminDocumentos === 'function') {
+                await loadAdminDocumentos(); // Recarga la tabla
+            }
+        } else {
+            alert('Error al eliminar el documento');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+    }
+};
