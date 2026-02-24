@@ -1,7 +1,7 @@
 // API Base URL
 const API_BASE = 'http://localhost:3000/api';
 const TOKEN_KEY = 'faen_auth_token';
-const USER_KEY = 'faen_auth_user';
+const USER_KEY  = 'faen_auth_user';
 
 async function login(username, password) {
   try {
@@ -29,8 +29,6 @@ async function login(username, password) {
 
 async function logout() {
   console.log('[Logout] Iniciando logout...');
-
-  // 1. Llamar al backend para que borre la cookie httpOnly
   try {
     const token = localStorage.getItem(TOKEN_KEY);
     await fetch(`${API_BASE}/auth/logout`, {
@@ -41,17 +39,12 @@ async function logout() {
         ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
       },
     });
-    console.log('[Logout] Cookie borrada en el servidor');
   } catch (e) {
-    console.warn('[Logout] No se pudo contactar al servidor, limpiando localmente');
+    console.warn('[Logout] No se pudo contactar al servidor');
   }
-
-  // 2. Limpiar localStorage y sessionStorage
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(USER_KEY);
   sessionStorage.clear();
-
-  console.log('[Logout] Storage limpiado, redirigiendo...');
   window.location.replace('/login.html');
 }
 
@@ -68,12 +61,21 @@ function isAuthenticated() {
   return !!getToken();
 }
 
+// ── Jerarquía de permisos: completo > solo ver > nada ──────────────────────
 function hasPermission(module, level) {
   const user = getCurrentUser();
   if (!user) return false;
-  const userLevel = user.permissions?.[module];
-  const levelHierarchy = { 'none': 0, 'read': 1, 'update': 2, 'create': 3, 'delete': 3 };
-  return (levelHierarchy[userLevel] || 0) >= (levelHierarchy[level] || 0);
+
+  const userLevel = user.permissions?.[module] || 'nada';
+
+  const hierarchy = { 'nada': 0, 'solo ver': 1, 'completo': 2 };
+
+  // nivel requerido desde data-permission-level (puede venir en inglés del HTML)
+  // mapeamos por si quedaron atributos en inglés
+  const legacyMap = { 'none': 'nada', 'read': 'solo ver', 'create': 'completo', 'update': 'completo', 'delete': 'completo' };
+  const normalizedRequired = legacyMap[level] || level;
+
+  return (hierarchy[userLevel] ?? 0) >= (hierarchy[normalizedRequired] ?? 0);
 }
 
 async function authenticatedFetch(url, options = {}) {
@@ -87,7 +89,7 @@ async function authenticatedFetch(url, options = {}) {
   const response = await fetch(url, { ...options, headers, credentials: 'include' });
 
   if (response.status === 401) {
-    console.warn('Token expirado - redirigiendo a login');
+    console.warn('[Auth] Token expirado — redirigiendo a login');
     await logout();
     return response;
   }
@@ -105,13 +107,10 @@ function ensureAuthenticated() {
 
 function ensureAdminAccess() {
   const token = getToken();
-  const user = getCurrentUser();
+  const user  = getCurrentUser();
 
-  if (!token) {
-    window.location.replace('/login.html?redirect=admin');
-    return false;
-  }
-  if (!user) {
+  if (!token) { window.location.replace('/login.html?redirect=admin'); return false; }
+  if (!user)  {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
     window.location.replace('/login.html?redirect=admin');
@@ -142,13 +141,13 @@ function updatePermissionVisibility() {
 
   document.querySelectorAll('[data-permission-module]').forEach(el => {
     const module = el.getAttribute('data-permission-module');
-    const level = el.getAttribute('data-permission-level') || 'read';
+    const level  = el.getAttribute('data-permission-level') || 'solo ver';
     el.style.display = hasPermission(module, level) ? '' : 'none';
   });
 
   document.querySelectorAll('[data-permission-button]').forEach(el => {
     const module = el.getAttribute('data-permission-module');
-    const level = el.getAttribute('data-permission-level') || 'read';
+    const level  = el.getAttribute('data-permission-level') || 'solo ver';
     if (!hasPermission(module, level)) {
       el.disabled = true;
       el.classList.add('disabled');

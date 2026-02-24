@@ -1720,3 +1720,111 @@ header h1 {
     font-size: 0.85rem;
     white-space: nowrap;
 }
+/* ═══════════════════════════════════════════════════════════════
+   TABLAS COMPARTIDAS — reemplaza el bloque que agregaste antes
+═══════════════════════════════════════════════════════════════ */
+
+/* Acciones en tabla — DEBE estar fuera del @media para funcionar en desktop */
+.tabla-acciones {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+/* Botón Editar */
+.btn-edit {
+    background-color: #4299e1;
+    color: white;
+    padding: 8px 14px;
+    font-size: 0.85rem;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+}
+
+.btn-edit:hover {
+    background-color: #3182ce;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(66, 153, 225, 0.35);
+}
+
+/* Botón Eliminar — asegurar mismo tamaño que Editar */
+.tabla-acciones .btn-danger {
+    padding: 8px 14px;
+    font-size: 0.85rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+}
+
+/* Tablas compartidas */
+.autoridades-table,
+.documentos-table,
+.carreras-table,
+.mensajes-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.autoridades-table thead,
+.documentos-table thead,
+.carreras-table thead,
+.mensajes-table thead {
+    background-color: #f7fafc;
+    border-bottom: 2px solid #e1e4e8;
+}
+
+.autoridades-table th,
+.documentos-table th,
+.carreras-table th,
+.mensajes-table th {
+    padding: 15px;
+    text-align: left;
+    font-weight: 700;
+    color: #333;
+    font-size: 0.95rem;
+}
+
+.autoridades-table td,
+.documentos-table td,
+.carreras-table td,
+.mensajes-table td {
+    padding: 15px;
+    border-bottom: 1px solid #e1e4e8;
+    color: #555;
+    vertical-align: middle;
+}
+
+.autoridades-table tbody tr:hover,
+.documentos-table tbody tr:hover,
+.carreras-table tbody tr:hover,
+.mensajes-table tbody tr:hover {
+    background-color: #f9fafb;
+}
+
+.autoridades-table tbody tr:last-child td,
+.documentos-table tbody tr:last-child td,
+.carreras-table tbody tr:last-child td,
+.mensajes-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* Badge estados mensajes */
+.badge.leido {
+    background-color: #e2e8f0;
+    color: #718096;
+}
+
+.badge.no-leido {
+    background-color: #ebf8ff;
+    color: #2b6cb0;
+    font-weight: 700;
+}

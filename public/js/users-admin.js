@@ -4,35 +4,31 @@ let allUsers = [];
 let allRoles = [];
 let editingUserId = null;
 let editingRoleId = null;
-const modules = ['noticias', 'autoridades', 'carreras', 'documentos', 'galeria', 'mensajes', 'config', 'usuarios'];
-const permissionLevels = ['create', 'read', 'update', 'delete', 'none'];
 
-// Switch tabs
+const modules = ['noticias', 'autoridades', 'carreras', 'documentos', 'galeria', 'mensajes', 'config', 'usuarios'];
+const permissionLevels = ['completo', 'solo ver', 'nada'];
+
+// ── Tabs ──────────────────────────────────────────────────────────────────────
 function switchTab(tabName) {
-  // Hide all tabs
   document.querySelectorAll('.tab-content').forEach(tab => tab.style.display = 'none');
   document.querySelectorAll('.tab-button').forEach(btn => {
     btn.style.borderBottom = 'none';
     btn.style.color = '#666';
   });
-
-  // Show selected tab
   document.getElementById(tabName).style.display = 'block';
   event.target.style.borderBottom = '3px solid #007bff';
   event.target.style.color = '#007bff';
 }
 
-// Cargar usuarios y roles al inicializar
+// ── Carga inicial ─────────────────────────────────────────────────────────────
 async function loadUsersAndRoles() {
   try {
-    // Cargar usuarios
     const usersResponse = await authenticatedFetch(`${API_BASE}/users`);
     if (usersResponse.ok) {
       allUsers = await usersResponse.json();
       renderUsersTable();
     }
 
-    // Cargar roles
     const rolesResponse = await fetch(`${API_BASE}/users/roles`);
     if (rolesResponse.ok) {
       allRoles = await rolesResponse.json();
@@ -44,12 +40,12 @@ async function loadUsersAndRoles() {
   }
 }
 
+// ── Tabla de usuarios ─────────────────────────────────────────────────────────
 function renderUsersTable() {
   const tbody = document.getElementById('usuarios-tbody');
   if (!tbody) return;
 
   tbody.innerHTML = '';
-
   allUsers.forEach(user => {
     const row = document.createElement('tr');
     row.innerHTML = `
@@ -74,8 +70,7 @@ function renderUsersTable() {
 function populateRoleSelect() {
   const select = document.getElementById('user-role');
   if (!select) return;
-
-  select.innerHTML = '';
+  select.innerHTML = '<option value="">-- Selecciona un rol --</option>';
   allRoles.forEach(role => {
     const option = document.createElement('option');
     option.value = role.name;
@@ -84,13 +79,14 @@ function populateRoleSelect() {
   });
 }
 
+// ── Crear usuario ─────────────────────────────────────────────────────────────
 async function createUser(e) {
   if (e) e.preventDefault();
 
   const username = document.getElementById('user-username').value.trim();
-  const email = document.getElementById('user-email').value.trim();
+  const email    = document.getElementById('user-email').value.trim();
   const password = document.getElementById('user-password').value.trim();
-  const role = document.getElementById('user-role').value;
+  const role     = document.getElementById('user-role').value;
 
   if (!username || !email || !password || !role) {
     alert('Por favor completa todos los campos');
@@ -117,10 +113,10 @@ async function createUser(e) {
   }
 }
 
+// ── Editar usuario ────────────────────────────────────────────────────────────
 async function editUser(userId) {
   editingUserId = userId;
   const user = allUsers.find(u => u.id === userId);
-
   if (!user) return;
 
   document.getElementById('user-username').value = user.username;
@@ -131,17 +127,15 @@ async function editUser(userId) {
   document.getElementById('user-role').value = user.role;
 
   const modal = document.getElementById('modal-usuario');
-  const title = document.getElementById('modal-titulo-usuario');
-  title.textContent = `Editar Usuario: ${user.username}`;
+  document.getElementById('modal-titulo-usuario').textContent = `Editar Usuario: ${user.username}`;
 
   const form = document.getElementById('user-form');
   form.onsubmit = async (e) => {
     e.preventDefault();
-
-    const email = document.getElementById('user-email').value.trim();
+    const email    = document.getElementById('user-email').value.trim();
     const password = document.getElementById('user-password').value.trim();
-    const role = document.getElementById('user-role').value;
-    const enabled = document.getElementById('user-enabled').checked;
+    const role     = document.getElementById('user-role').value;
+    const enabled  = document.getElementById('user-enabled').checked;
 
     try {
       const body = { email, role, enabled };
@@ -169,15 +163,12 @@ async function editUser(userId) {
   modal.style.display = 'block';
 }
 
+// ── Eliminar usuario ──────────────────────────────────────────────────────────
 async function deleteUser(userId) {
-  if (!confirm('¿Estás seguro de que deseas eliminar este usuario?')) {
-    return;
-  }
+  if (!confirm('¿Estás seguro de que deseas eliminar este usuario?')) return;
 
   try {
-    const response = await authenticatedFetch(`${API_BASE}/users/${userId}`, {
-      method: 'DELETE',
-    });
+    const response = await authenticatedFetch(`${API_BASE}/users/${userId}`, { method: 'DELETE' });
 
     if (response.ok) {
       alert('Usuario eliminado exitosamente');
@@ -192,81 +183,76 @@ async function deleteUser(userId) {
   }
 }
 
+// ── Gestión de permisos individuales ─────────────────────────────────────────
 async function managePermissions(userId) {
   const user = allUsers.find(u => u.id === userId);
   if (!user) return;
 
-  const modules = ['noticias', 'autoridades', 'carreras', 'documentos', 'galeria', 'mensajes', 'config', 'usuarios'];
-  const levels = ['create', 'read', 'update', 'delete', 'none'];
-
-  let html = `<div style="max-height: 400px; overflow-y: auto;">
-    <h4>Permisos de ${user.username}</h4>
-    <table style="width: 100%; border-collapse: collapse;">
-      <thead>
-        <tr style="background: #f5f5f5;">
-          <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Módulo</th>
-          <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Permiso</th>
-        </tr>
-      </thead>
-      <tbody>`;
+  let html = `
+    <div style="max-height:400px;overflow-y:auto;">
+      <h4>Permisos de ${user.username}</h4>
+      <table style="width:100%;border-collapse:collapse;">
+        <thead>
+          <tr style="background:#f5f5f5;">
+            <th style="border:1px solid #ddd;padding:8px;text-align:left;">Módulo</th>
+            <th style="border:1px solid #ddd;padding:8px;text-align:left;">Permiso</th>
+          </tr>
+        </thead>
+        <tbody>`;
 
   modules.forEach(module => {
-    const currentLevel = user.permissions[module] || 'none';
+    const currentLevel = user.permissions[module] || 'nada';
     html += `
       <tr>
-        <td style="border: 1px solid #ddd; padding: 8px;">${module}</td>
-        <td style="border: 1px solid #ddd; padding: 8px;">
-          <select id="perm-${module}" value="${currentLevel}">
-            ${levels.map(level => `<option value="${level}" ${currentLevel === level ? 'selected' : ''}>${level}</option>`).join('')}
+        <td style="border:1px solid #ddd;padding:8px;">${module}</td>
+        <td style="border:1px solid #ddd;padding:8px;">
+          <select id="perm-${module}">
+            ${permissionLevels.map(level =>
+              `<option value="${level}" ${currentLevel === level ? 'selected' : ''}>${level}</option>`
+            ).join('')}
           </select>
         </td>
       </tr>`;
   });
 
   html += `
-      </tbody>
-    </table>
-    <div style="margin-top: 20px; text-align: right;">
-      <button onclick="savePermissions('${userId}', ${JSON.stringify(modules)})" class="btn btn-primary">Guardar Permisos</button>
-    </div>
-  </div>`;
+        </tbody>
+      </table>
+      <div style="margin-top:20px;text-align:right;">
+        <button onclick="savePermissions('${userId}')" class="btn btn-primary">Guardar Permisos</button>
+      </div>
+    </div>`;
 
-  const modal = document.getElementById('modal-permisos');
+  let modal = document.getElementById('modal-permisos');
   if (!modal) {
-    const newModal = document.createElement('div');
-    newModal.id = 'modal-permisos';
-    newModal.className = 'modal';
-    newModal.innerHTML = `
-      <div class="modal-content" style="width: 600px;">
+    modal = document.createElement('div');
+    modal.id = 'modal-permisos';
+    modal.className = 'modal';
+    modal.innerHTML = `
+      <div class="modal-content" style="width:600px;">
         <div class="modal-header">
           <h3>Gestionar Permisos</h3>
           <button class="modal-close" onclick="document.getElementById('modal-permisos').style.display='none'">&times;</button>
         </div>
         <div id="permisos-content"></div>
-      </div>
-    `;
-    document.body.appendChild(newModal);
+      </div>`;
+    document.body.appendChild(modal);
   }
 
   document.getElementById('permisos-content').innerHTML = html;
-  document.getElementById('modal-permisos').style.display = 'block';
+  modal.style.display = 'block';
 }
 
-async function savePermissions(userId, modules) {
+async function savePermissions(userId) {
   try {
     for (const module of modules) {
       const permission = document.getElementById(`perm-${module}`).value;
-
       const response = await authenticatedFetch(`${API_BASE}/users/${userId}/permissions`, {
         method: 'POST',
         body: JSON.stringify({ module, permission }),
       });
-
-      if (!response.ok) {
-        throw new Error(`Error actualizando permisos para ${module}`);
-      }
+      if (!response.ok) throw new Error(`Error actualizando permisos para ${module}`);
     }
-
     alert('Permisos actualizados exitosamente');
     document.getElementById('modal-permisos').style.display = 'none';
     loadUsersAndRoles();
@@ -276,6 +262,7 @@ async function savePermissions(userId, modules) {
   }
 }
 
+// ── Modal usuario ─────────────────────────────────────────────────────────────
 function openUserModal() {
   editingUserId = null;
   document.getElementById('user-username').disabled = false;
@@ -283,17 +270,12 @@ function openUserModal() {
   document.getElementById('user-email').value = '';
   document.getElementById('user-password').value = '';
   document.getElementById('user-password').placeholder = 'Contraseña (requerida)';
-  document.getElementById('user-role').value = 'viewer';
+  document.getElementById('user-role').value = '';
   document.getElementById('user-enabled').checked = true;
 
-  const modal = document.getElementById('modal-usuario');
-  const title = document.getElementById('modal-titulo-usuario');
-  title.textContent = 'Nuevo Usuario';
-
-  const form = document.getElementById('user-form');
-  form.onsubmit = createUser;
-
-  modal.style.display = 'block';
+  document.getElementById('modal-titulo-usuario').textContent = 'Nuevo Usuario';
+  document.getElementById('user-form').onsubmit = createUser;
+  document.getElementById('modal-usuario').style.display = 'block';
 }
 
 function closeUserModal() {
@@ -301,24 +283,24 @@ function closeUserModal() {
   editingUserId = null;
 }
 
-// FUNCIONES DE ROLES
-
+// ── Tabla de roles ────────────────────────────────────────────────────────────
 function renderRolesTable() {
   const tbody = document.getElementById('roles-tbody');
   if (!tbody) return;
 
   tbody.innerHTML = '';
   allRoles.forEach(role => {
-    const row = document.createElement('tr');
     const isSystemRole = ['admin', 'editor', 'moderador', 'viewer'].includes(role.name);
+    const row = document.createElement('tr');
     row.innerHTML = `
       <td>${role.name}</td>
       <td>${role.description}</td>
       <td>
         <button class="btn btn-sm btn-primary" onclick="editRole('${role.id}')">Editar</button>
-        ${!isSystemRole ? `<button class="btn btn-sm btn-danger" onclick="deleteRole('${role.id}')">Eliminar</button>` : '<span style="color: #999; font-size: 0.9em;">Sistema</span>'}
-      </td>
-    `;
+        ${!isSystemRole
+          ? `<button class="btn btn-sm btn-danger" onclick="deleteRole('${role.id}')">Eliminar</button>`
+          : '<span style="color:#999;font-size:0.9em;">Sistema</span>'}
+      </td>`;
     tbody.appendChild(row);
   });
 }
@@ -329,25 +311,25 @@ function renderRolePermissions(role) {
 
   container.innerHTML = '';
   modules.forEach(module => {
-    const currentLevel = role ? (role.default_permissions[module] || 'none') : 'none';
+    const currentLevel = role ? (role.default_permissions[module] || 'nada') : 'nada';
     const div = document.createElement('div');
-    div.style.padding = '10px';
-    div.style.border = '1px solid #ddd';
-    div.style.borderRadius = '4px';
+    div.style.cssText = 'padding:10px;border:1px solid #ddd;border-radius:4px;';
     div.innerHTML = `
-      <label style="display: block; margin-bottom: 8px; font-weight: bold; font-size: 0.9em;">${module}</label>
-      <select id="role-perm-${module}" style="width: 100%; padding: 6px;">
-        ${permissionLevels.map(level => `<option value="${level}" ${currentLevel === level ? 'selected' : ''}>${level}</option>`).join('')}
-      </select>
-    `;
+      <label style="display:block;margin-bottom:8px;font-weight:bold;font-size:0.9em;">${module}</label>
+      <select id="role-perm-${module}" style="width:100%;padding:6px;">
+        ${permissionLevels.map(level =>
+          `<option value="${level}" ${currentLevel === level ? 'selected' : ''}>${level}</option>`
+        ).join('')}
+      </select>`;
     container.appendChild(div);
   });
 }
 
+// ── Crear rol ─────────────────────────────────────────────────────────────────
 async function createRole(e) {
   if (e) e.preventDefault();
 
-  const name = document.getElementById('role-name').value.trim();
+  const name        = document.getElementById('role-name').value.trim();
   const description = document.getElementById('role-description').value.trim();
 
   if (!name || !description) {
@@ -355,7 +337,6 @@ async function createRole(e) {
     return;
   }
 
-  // Recolectar permisos
   const default_permissions = {};
   modules.forEach(module => {
     default_permissions[module] = document.getElementById(`role-perm-${module}`).value;
@@ -381,27 +362,25 @@ async function createRole(e) {
   }
 }
 
+// ── Editar rol ────────────────────────────────────────────────────────────────
 async function editRole(roleId) {
   editingRoleId = roleId;
   const role = allRoles.find(r => r.id === roleId);
-
   if (!role) return;
 
+  const isSystem = ['admin', 'editor', 'moderador', 'viewer'].includes(role.name);
   document.getElementById('role-name').value = role.name;
-  document.getElementById('role-name').disabled = ['admin', 'editor', 'moderador', 'viewer'].includes(role.name);
+  document.getElementById('role-name').disabled = isSystem;
   document.getElementById('role-description').value = role.description;
-  document.getElementById('role-description').disabled = ['admin', 'editor', 'moderador', 'viewer'].includes(role.name);
+  document.getElementById('role-description').disabled = isSystem;
 
   renderRolePermissions(role);
 
-  const modal = document.getElementById('modal-rol');
-  const title = document.getElementById('modal-titulo-rol');
-  title.textContent = `Editar Rol: ${role.name}`;
+  document.getElementById('modal-titulo-rol').textContent = `Editar Rol: ${role.name}`;
 
   const form = document.getElementById('role-form');
   form.onsubmit = async (e) => {
     e.preventDefault();
-
     const description = document.getElementById('role-description').value.trim();
     const default_permissions = {};
     modules.forEach(module => {
@@ -428,18 +407,15 @@ async function editRole(roleId) {
     }
   };
 
-  modal.style.display = 'block';
+  document.getElementById('modal-rol').style.display = 'block';
 }
 
+// ── Eliminar rol ──────────────────────────────────────────────────────────────
 async function deleteRole(roleId) {
-  if (!confirm('¿Estás seguro de que deseas eliminar este rol?')) {
-    return;
-  }
+  if (!confirm('¿Estás seguro de que deseas eliminar este rol?')) return;
 
   try {
-    const response = await authenticatedFetch(`${API_BASE}/users/roles/${roleId}`, {
-      method: 'DELETE',
-    });
+    const response = await authenticatedFetch(`${API_BASE}/users/roles/${roleId}`, { method: 'DELETE' });
 
     if (response.ok) {
       alert('Rol eliminado exitosamente');
@@ -454,6 +430,7 @@ async function deleteRole(roleId) {
   }
 }
 
+// ── Modal rol ─────────────────────────────────────────────────────────────────
 function openRoleModal() {
   editingRoleId = null;
   document.getElementById('role-name').disabled = false;
@@ -463,38 +440,25 @@ function openRoleModal() {
 
   renderRolePermissions(null);
 
-  const modal = document.getElementById('modal-rol');
-  const title = document.getElementById('modal-titulo-rol');
-  title.textContent = 'Nuevo Rol';
-
-  const form = document.getElementById('role-form');
-  form.onsubmit = createRole;
-
-  modal.style.display = 'block';
+  document.getElementById('modal-titulo-rol').textContent = 'Nuevo Rol';
+  document.getElementById('role-form').onsubmit = createRole;
+  document.getElementById('modal-rol').style.display = 'block';
 }
 
 function closeRoleModal() {
   document.getElementById('modal-rol').style.display = 'none';
   editingRoleId = null;
 }
+
+// ── Cerrar modales al hacer click afuera ──────────────────────────────────────
 window.onclick = function(event) {
-  const modal = document.getElementById('modal-usuario');
-  if (event.target === modal) {
-    modal.style.display = 'none';
-  }
-
-  const permModal = document.getElementById('modal-permisos');
-  if (permModal && event.target === permModal) {
-    permModal.style.display = 'none';
-  }
-
-  const roleModal = document.getElementById('modal-rol');
-  if (roleModal && event.target === roleModal) {
-    roleModal.style.display = 'none';
-  }
+  ['modal-usuario', 'modal-permisos', 'modal-rol'].forEach(id => {
+    const modal = document.getElementById(id);
+    if (modal && event.target === modal) modal.style.display = 'none';
+  });
 };
 
-// Inicializar cuando se carga la página
+// ── Inicializar ───────────────────────────────────────────────────────────────
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', loadUsersAndRoles);
 } else {

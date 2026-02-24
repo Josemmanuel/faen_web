@@ -177,7 +177,7 @@
                         </form>
                     </div>
                 </div>
-                <div id="galeria-admin-container" class="galeria-admin-grid"></div>
+                <div id="galeria-grid" class="galeria-grid"></div>
             </section>
 
             <!-- ===================== DOCUMENTOS ===================== -->
@@ -264,14 +264,14 @@
                             <h3 id="modal-carrera-titulo">Nueva Carrera</h3>
                             <button class="modal-close" id="modal-carrera-close">&times;</button>
                         </div>
-                        <form id="carrera-form" enctype="multipart/form-data" class="modal-form">
+                        <form id="carrera-form" class="modal-form">
                             <div class="form-group">
-                                <label for="carrera-name">Nombre *</label>
-                                <input type="text" id="carrera-name" placeholder="Nombre de la carrera" required>
+                                <label for="carrera-title">Nombre *</label>
+                                <input type="text" id="carrera-title" placeholder="Nombre de la carrera" required>
                             </div>
                             <div class="form-group">
-                                <label for="carrera-code">Código</label>
-                                <input type="text" id="carrera-code" placeholder="Ej: LIC-ADM">
+                                <label for="carrera-code">Código *</label>
+                                <input type="text" id="carrera-code" placeholder="Ej: LIC-ADM" required>
                             </div>
                             <div class="form-group">
                                 <label for="carrera-category">Categoría *</label>
@@ -290,15 +290,24 @@
                                 <textarea id="carrera-full-description" placeholder="Descripción completa" rows="6"></textarea>
                             </div>
                             <div class="form-group">
-                                <label for="carrera-duration">Duración</label>
-                                <input type="text" id="carrera-duration" placeholder="Ej: 4 años">
+                                <label for="carrera-duration">Duración (años)</label>
+                                <input type="number" id="carrera-duration" placeholder="Ej: 4" min="1">
+                            </div>
+                            <div class="form-group">
+                                <label for="carrera-foto">Foto de la carrera</label>
+                                <div class="file-input-wrapper">
+                                    <input type="file" id="carrera-foto" accept="image/*" class="file-input">
+                                    <label for="carrera-foto" class="file-label">Seleccionar imagen</label>
+                                    <span id="carrera-foto-name" class="file-name">Ningún archivo seleccionado</span>
+                                </div>
+                                <div id="carrera-foto-preview"></div>
                             </div>
                             <div class="form-group">
                                 <label for="carrera-documento">Plan de Carrera (PDF)</label>
                                 <div class="file-input-wrapper">
                                     <input type="file" id="carrera-documento" accept=".pdf" class="file-input">
                                     <label for="carrera-documento" class="file-label">Seleccionar PDF</label>
-                                    <span id="carrera-doc-name" class="file-name">Ningún archivo seleccionado</span>
+                                    <span id="carrera-documento-name" class="file-name">Ningún archivo seleccionado</span>
                                 </div>
                             </div>
                             <div class="form-actions">
@@ -391,7 +400,7 @@
 
             <!-- ===================== MENSAJES ===================== -->
             <section class="dashboard-section" id="section-mensajes"
-                     data-permission-module="mensajes" data-permission-level="read">
+                     data-permission-module="mensajes" data-permission-level="solo ver">
                 <div class="section-header">
                     <h2>Mensajes de Contacto</h2>
                     <p style="font-size:0.9rem;color:#666;margin:0;">
@@ -415,13 +424,31 @@
                     <table class="mensajes-table">
                         <thead>
                             <tr>
-                                <th>Estado</th><th>Nombre</th><th>Email</th><th>Asunto</th><th>Fecha</th><th>Acciones</th>
+                                <th>De</th><th>Asunto</th><th>Fecha</th><th>Estado</th><th>Acciones</th>
                             </tr>
                         </thead>
                         <tbody id="admin-mensajes-list">
-                            <tr><td colspan="6" class="text-center">Cargando mensajes...</td></tr>
+                            <tr><td colspan="5" class="text-center">Cargando mensajes...</td></tr>
                         </tbody>
                     </table>
+                </div>
+                <!-- Modal mensaje — usa classList active igual que app.js -->
+                <div id="modal-mensaje" class="modal">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h3>Mensaje de Contacto</h3>
+                            <button class="modal-close" id="modal-mensaje-close">&times;</button>
+                        </div>
+                        <div class="modal-body" id="modal-mensaje-body"></div>
+                        <div class="form-actions">
+                            <button id="btn-eliminar-mensaje" class="btn btn-danger"
+                                    data-permission-module="mensajes" data-permission-level="completo"
+                                    data-permission-button="true">
+                                🗑️ Eliminar
+                            </button>
+                            <button class="modal-close-btn btn btn-secondary">Cerrar</button>
+                        </div>
+                    </div>
                 </div>
             </section>
 

@@ -4,14 +4,14 @@
     "name": "admin",
     "description": "Administrador con acceso total",
     "default_permissions": {
-      "noticias": "create",
-      "autoridades": "create",
-      "carreras": "create",
-      "documentos": "create",
-      "galeria": "create",
-      "mensajes": "create",
-      "config": "create",
-      "usuarios": "create"
+      "noticias": "completo",
+      "autoridades": "completo",
+      "carreras": "completo",
+      "documentos": "completo",
+      "galeria": "completo",
+      "mensajes": "completo",
+      "config": "completo",
+      "usuarios": "completo"
     }
   },
   {
@@ -19,29 +19,29 @@
     "name": "editor",
     "description": "Editor de contenido general",
     "default_permissions": {
-      "noticias": "create",
-      "autoridades": "create",
-      "carreras": "create",
-      "documentos": "create",
-      "galeria": "create",
-      "mensajes": "read",
-      "config": "read",
-      "usuarios": "none"
+      "noticias": "completo",
+      "autoridades": "completo",
+      "carreras": "completo",
+      "documentos": "completo",
+      "galeria": "completo",
+      "mensajes": "solo ver",
+      "config": "solo ver",
+      "usuarios": "nada"
     }
   },
   {
     "id": "role_moderador",
     "name": "moderador",
-    "description": "Moderador de mensajes y comentarios",
+    "description": "Moderador de mensajes y galería",
     "default_permissions": {
-      "noticias": "none",
-      "autoridades": "create",
-      "carreras": "none",
-      "documentos": "create",
-      "galeria": "create",
-      "mensajes": "create",
-      "config": "none",
-      "usuarios": "none"
+      "noticias": "solo ver",
+      "autoridades": "solo ver",
+      "carreras": "solo ver",
+      "documentos": "solo ver",
+      "galeria": "completo",
+      "mensajes": "completo",
+      "config": "solo ver",
+      "usuarios": "nada"
     }
   },
   {
@@ -49,14 +49,14 @@
     "name": "viewer",
     "description": "Solo lectura",
     "default_permissions": {
-      "noticias": "read",
-      "autoridades": "read",
-      "carreras": "read",
-      "documentos": "read",
-      "galeria": "read",
-      "mensajes": "read",
-      "config": "read",
-      "usuarios": "none"
+      "noticias": "solo ver",
+      "autoridades": "solo ver",
+      "carreras": "solo ver",
+      "documentos": "solo ver",
+      "galeria": "solo ver",
+      "mensajes": "solo ver",
+      "config": "solo ver",
+      "usuarios": "nada"
     }
   }
 ]
