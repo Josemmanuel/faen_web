@@ -23,7 +23,13 @@ export class PermissionsGuard implements CanActivate {
     const userPermissionLevel = user.permissions[permission.module];
 
     // Mapear niveles de permiso a valores numéricos para comparación
-    const permissionHierarchy = {
+    // Soporta tanto los valores en español (nuevo) como en inglés (legacy)
+    const permissionHierarchy: Record<string, number> = {
+      // Valores en español (sistema actual)
+      'nada': 0,
+      'solo ver': 1,
+      'completo': 3,
+      // Valores en inglés (legacy - compatibilidad hacia atrás)
       'none': 0,
       'read': 1,
       'update': 2,
@@ -31,8 +37,8 @@ export class PermissionsGuard implements CanActivate {
       'delete': 3,
     };
 
-    const requiredLevel = permissionHierarchy[permission.level] || 0;
-    const userLevel = permissionHierarchy[userPermissionLevel] || 0;
+    const requiredLevel = permissionHierarchy[permission.level] ?? 0;
+    const userLevel = permissionHierarchy[userPermissionLevel] ?? 0;
 
     if (userLevel < requiredLevel) {
       throw new ForbiddenException(`No tienes permiso para ${permission.level} en ${permission.module}`);

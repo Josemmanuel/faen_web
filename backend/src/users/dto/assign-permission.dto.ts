@@ -7,6 +7,6 @@ export class AssignPermissionDto {
   module: string;
 
   @IsNotEmpty()
-  @IsIn(['create', 'read', 'update', 'delete', 'none'])
+  @IsIn(['completo', 'solo ver', 'nada', 'create', 'read', 'update', 'delete', 'none'])
   permission: PermissionLevel;
 }

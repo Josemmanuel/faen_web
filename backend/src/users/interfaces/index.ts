@@ -5,7 +5,7 @@ export interface User {
   password_hash: string;
   role: string;
   permissions: {
-    [module: string]: 'create' | 'read' | 'update' | 'delete' | 'none';
+    [module: string]: PermissionLevel;
   };
   enabled: boolean;
   created_at: string;
@@ -17,8 +17,17 @@ export interface Role {
   name: string;
   description: string;
   default_permissions: {
-    [module: string]: 'create' | 'read' | 'update' | 'delete' | 'none';
+    [module: string]: PermissionLevel;
   };
 }
 
-export type PermissionLevel = 'create' | 'read' | 'update' | 'delete' | 'none';
+// Soporta valores en español (sistema actual) y en inglés (legacy)
+export type PermissionLevel =
+  | 'completo'
+  | 'solo ver'
+  | 'nada'
+  | 'create'
+  | 'read'
+  | 'update'
+  | 'delete'
+  | 'none';
