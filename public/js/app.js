@@ -40,7 +40,6 @@ function getAuthHeaders() {
 }
 
 
-
 function updateSessionActivity() {
     sessionStorage.setItem('admin_last_activity', Date.now().toString());
 }
@@ -75,10 +74,9 @@ function logoutSession() {
     sessionStorage.removeItem('admin_pass');
     sessionStorage.removeItem('admin_authenticated');
     sessionStorage.removeItem('admin_last_activity');
-    // Limpiar token JWT para que admin-guard.js no deje pasar al usuario
-    localStorage.removeItem("faen_auth_token");
-    localStorage.removeItem("faen_auth_user");
-    window.location.replace("/login.html?expired=true");
+    localStorage.removeItem('faen_auth_token');
+    localStorage.removeItem('faen_auth_user');
+    window.location.replace('/login.html?expired=true');
 }
 
 function showLoginModal() {
@@ -434,11 +432,11 @@ async function loadConfigPage() {
 
     if (!preinscripcionEnabled || !preinscripcionUrl) return;
 
+    // Cargar configuracion de preinscripcion
     try {
         const res = await fetch('/api/config/preinscripcion', {
             headers: getAuthHeaders()
         });
-
         if (res.ok) {
             const config = await res.json();
             preinscripcionEnabled.checked = config.enabled || false;
@@ -447,7 +445,204 @@ async function loadConfigPage() {
     } catch (error) {
         console.error('Error loading config:', error);
     }
+
+    // Poblar el select de claustros desde la API
+    const claustroSelect = document.getElementById('claustro-select');
+    if (claustroSelect) {
+        try {
+            const resClaustros = await fetch('/api/config/claustros');
+            if (resClaustros.ok) {
+                const claustros = await resClaustros.json();
+                claustroSelect.innerHTML = '<option value="">-- Selecciona un claustro --</option>';
+                claustros.forEach(function(claustro) {
+                    const option = document.createElement('option');
+                    option.value = claustro.id;
+                    option.textContent = claustro.icon + ' ' + claustro.name;
+                    claustroSelect.appendChild(option);
+                });
+            }
+        } catch (error) {
+            console.error('Error cargando claustros en select:', error);
+        }
+
+        // Registrar listener del select (remover el anterior para evitar duplicados)
+        const newSelect = claustroSelect.cloneNode(true);
+        claustroSelect.parentNode.replaceChild(newSelect, claustroSelect);
+
+        // Re-poblar el nuevo nodo (cloneNode no hereda los options recién agregados)
+        try {
+            const resClaustros2 = await fetch('/api/config/claustros');
+            if (resClaustros2.ok) {
+                const claustros2 = await resClaustros2.json();
+                newSelect.innerHTML = '<option value="">-- Selecciona un claustro --</option>';
+                claustros2.forEach(function(claustro) {
+                    const option = document.createElement('option');
+                    option.value = claustro.id;
+                    option.textContent = claustro.icon + ' ' + claustro.name;
+                    newSelect.appendChild(option);
+                });
+            }
+        } catch (e) {}
+
+        newSelect.addEventListener('change', async function(e) {
+            const claustroId = e.target.value;
+            const formContainer = document.getElementById('claustro-form-container');
+            const linksContainer = document.getElementById('claustro-links-container');
+
+            if (!claustroId) {
+                if (formContainer) formContainer.style.display = 'none';
+                if (linksContainer) linksContainer.style.display = 'none';
+                return;
+            }
+
+            const nombreEl = document.getElementById('claustro-nombre');
+            const nombreDisplayEl = document.getElementById('claustro-nombre-display');
+            const claustroNombre = newSelect.options[newSelect.selectedIndex].text;
+            if (nombreEl) nombreEl.textContent = claustroNombre;
+            if (nombreDisplayEl) nombreDisplayEl.textContent = claustroNombre;
+
+            if (formContainer) formContainer.style.display = 'block';
+            if (linksContainer) linksContainer.style.display = 'block';
+
+            const titleInput = document.getElementById('claustro-link-title');
+            const urlInput = document.getElementById('claustro-link-url');
+            const iconInput = document.getElementById('claustro-link-icon');
+            if (titleInput) titleInput.value = '';
+            if (urlInput) urlInput.value = '';
+            if (iconInput) iconInput.value = '';
+
+            await window.loadClaustroLinks(claustroId);
+        });
+    }
+
+    // Registrar listener del boton agregar (remover anterior para evitar duplicados)
+    const btnAgregarOld = document.getElementById('btn-agregar-claustro-link');
+    if (btnAgregarOld) {
+        const btnAgregar = btnAgregarOld.cloneNode(true);
+        btnAgregarOld.parentNode.replaceChild(btnAgregar, btnAgregarOld);
+
+        btnAgregar.addEventListener('click', async function(e) {
+            e.preventDefault();
+            const select = document.getElementById('claustro-select');
+            const claustroId = select ? select.value : '';
+            if (!claustroId) {
+                alert('Por favor selecciona un claustro');
+                return;
+            }
+
+            const title = document.getElementById('claustro-link-title').value.trim();
+            const url = document.getElementById('claustro-link-url').value.trim();
+            const icon = document.getElementById('claustro-link-icon').value.trim() || '🔗';
+
+            if (!title || !url) {
+                alert('Por favor completa todos los campos requeridos');
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/config/claustros/' + claustroId + '/links', {
+                    method: 'POST',
+                    headers: Object.assign({ 'Content-Type': 'application/json' }, getAuthHeaders()),
+                    body: JSON.stringify({ title: title, url: url, icon: icon })
+                });
+
+                if (res.ok) {
+                    alert('Enlace agregado correctamente');
+                    document.getElementById('claustro-link-title').value = '';
+                    document.getElementById('claustro-link-url').value = '';
+                    document.getElementById('claustro-link-icon').value = '';
+                    await window.loadClaustroLinks(claustroId);
+                    await loadClaustrosInDropdown();
+                } else {
+                    alert('Error al agregar el enlace');
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        });
+    }
 }
+
+// Cargar enlaces de un claustro - global para poder llamarse desde onclick
+window.loadClaustroLinks = async function(claustroId) {
+    try {
+        const res = await fetch('/api/config/claustros/' + claustroId, {
+            headers: getAuthHeaders()
+        });
+        const claustro = await res.json();
+        const linksList = document.getElementById('claustro-links-list');
+        if (!linksList) return;
+
+        linksList.innerHTML = '';
+
+        if (!claustro || !claustro.links || claustro.links.length === 0) {
+            linksList.innerHTML = '<p style="color: #999;">No hay enlaces configurados para este claustro</p>';
+            return;
+        }
+
+        claustro.links.forEach(function(link) {
+            const item = document.createElement('div');
+            item.className = 'student-link-item';
+            item.innerHTML =
+                '<span class="student-link-icon">' + escapeHtml(link.icon) + '</span>' +
+                '<div class="student-link-content">' +
+                    '<h5>' + escapeHtml(link.title) + '</h5>' +
+                    '<a href="' + escapeHtml(link.url) + '" target="_blank" rel="noopener">' + escapeHtml(link.url) + '</a>' +
+                '</div>' +
+                '<div class="student-link-actions">' +
+                    '<button class="btn btn-edit" onclick="window.editClaustroLink(\'' + claustroId + '\', \'' + link.id + '\', \'' + escapeHtml(link.title).replace(/'/g, "\\'") + '\', \'' + escapeHtml(link.url).replace(/'/g, "\\'") + '\', \'' + escapeHtml(link.icon) + '\')">✏️ Editar</button>' +
+                    '<button class="btn btn-danger" onclick="window.deleteClaustroLink(\'' + claustroId + '\', \'' + link.id + '\')">🗑️ Eliminar</button>' +
+                '</div>';
+            linksList.appendChild(item);
+        });
+    } catch (error) {
+        console.error('Error cargando enlaces de claustro:', error);
+    }
+};
+
+window.editClaustroLink = async function(claustroId, linkId, title, url, icon) {
+    const newTitle = prompt('Nombre del enlace:', decodeURIComponent(title));
+    if (!newTitle) return;
+    const newUrl = prompt('URL:', decodeURIComponent(url));
+    if (!newUrl) return;
+    const newIcon = prompt('Emoji/Icono:', decodeURIComponent(icon)) || '🔗';
+
+    try {
+        const res = await fetch('/api/config/claustros/' + claustroId + '/links/' + linkId, {
+            method: 'PUT',
+            headers: Object.assign({ 'Content-Type': 'application/json' }, getAuthHeaders()),
+            body: JSON.stringify({ title: newTitle, url: newUrl, icon: newIcon })
+        });
+        if (res.ok) {
+            alert('Enlace actualizado correctamente');
+            await window.loadClaustroLinks(claustroId);
+            await loadClaustrosInDropdown();
+        } else {
+            alert('Error al actualizar el enlace');
+        }
+    } catch (error) {
+        alert('Error: ' + error.message);
+    }
+};
+
+window.deleteClaustroLink = async function(claustroId, linkId) {
+    if (!confirm('¿Estás seguro de que deseas eliminar este enlace?')) return;
+    try {
+        const res = await fetch('/api/config/claustros/' + claustroId + '/links/' + linkId, {
+            method: 'DELETE',
+            headers: getAuthHeaders()
+        });
+        if (res.ok) {
+            alert('Enlace eliminado correctamente');
+            await window.loadClaustroLinks(claustroId);
+            await loadClaustrosInDropdown();
+        } else {
+            alert('Error al eliminar el enlace');
+        }
+    } catch (error) {
+        alert('Error: ' + error.message);
+    }
+};
 
 async function loadAdminNews() {
     const adminList = document.getElementById('admin-news-list');
@@ -800,7 +995,7 @@ async function loadAdminAutoridades() {
                 <td>${autoridad.email || '-'}</td>
                 <td>
                     <button class="btn-edit" onclick="editAutoridad('${autoridad.id}')">✏️</button>
-                    <button class="btn-danger" onclick="deleteAutoridad('${autoridad.id}')">🗑️</button>
+                    <button class="btn-danger" onclick="removeAutoridad('${autoridad.id}')">🗑️</button>
                 </td>
             `;
             adminAutoridadesList.appendChild(row);
@@ -824,7 +1019,7 @@ function vincularEventosAutoridades() {
             e.preventDefault();
             // ✅ Usar currentTarget en lugar de target
             const id = e.currentTarget.dataset.id;
-            await deleteAutoridad(id);
+            await removeAutoridad(id);
         });
     });
 }
@@ -1244,6 +1439,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Admin authentication (compatible with JWT-based auth)
     let isAdminAuthenticated = sessionStorage.getItem('admin_authenticated');
 
+    // Si hay token JWT en localStorage, marcar como autenticado sin mostrar modal legacy
+    const jwtToken = localStorage.getItem('faen_auth_token');
+    if (!isAdminAuthenticated && jwtToken) {
+        sessionStorage.setItem('admin_authenticated', 'true');
+        isAdminAuthenticated = 'true';
+    }
+
     // If a JWT token exists (from `auth.js`), consider the user authenticated so we don't show the modal twice
     if (!isAdminAuthenticated && typeof isAuthenticated === 'function' && isAuthenticated()) {
         sessionStorage.setItem('admin_authenticated', 'true');
@@ -1335,6 +1537,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 loadAdminAutoridades();
             } else if (sectionId === 'mensajes') {
                 loadAdminMensajes();
+            } else if (sectionId === 'configuracion') {
+                loadConfigPage();
             }
         });
     });
@@ -1793,70 +1997,86 @@ document.addEventListener('DOMContentLoaded', async () => {
             const telefono = document.getElementById('autoridad-telefono').value.trim();
             const fotoInput = document.getElementById('autoridad-foto');
 
-            if (!nombre) { alert('Por favor ingresa el nombre'); return; }
-            if (!cargo) { alert('Por favor ingresa el cargo'); return; }
-
-            const fotoFile = fotoInput && fotoInput.files && fotoInput.files[0] ? fotoInput.files[0] : null;
-
-            if (fotoFile && fotoFile.size > 5 * 1024 * 1024) {
-                alert('La imagen es muy grande. Por favor usa una imagen menor a 5MB');
+            // Validación
+            if (!nombre) {
+                alert('Por favor ingresa el nombre');
+                return;
+            }
+            if (!cargo) {
+                alert('Por favor ingresa el cargo');
                 return;
             }
 
-            await guardarAutoridad(nombre, cargo, email, telefono, fotoFile);
-        });
-    }
+            // Procesar foto si existe
+            let foto = null;
+            if (fotoInput && fotoInput.files && fotoInput.files[0]) {
+                const file = fotoInput.files[0];
 
-    async function guardarAutoridad(nombre, cargo, email, telefono, fotoFile) {
-        const isEditing = !!editingAutoridadId;
-        const url = isEditing ? '/api/autoridades/' + editingAutoridadId : '/api/autoridades';
-        const authHeaders = getAuthHeaders();
-
-        try {
-            let res;
-
-            if (isEditing) {
-                // PUT: el controller acepta JSON con foto en base64
-                const payload = { nombre, cargo };
-                if (email) payload.email = email;
-                if (telefono) payload.telefono = telefono;
-
-                if (fotoFile) {
-                    // Convertir a base64 para el PUT
-                    payload.foto = await new Promise((resolve, reject) => {
-                        const reader = new FileReader();
-                        reader.onload = (ev) => resolve(ev.target.result);
-                        reader.onerror = () => reject(new Error('Error al leer la foto'));
-                        reader.readAsDataURL(fotoFile);
-                    });
+                // Limitar tamaño de imagen
+                if (file.size > 500000) {
+                    alert('La imagen es muy grande. Por favor usa una imagen menor a 500KB');
+                    return;
                 }
 
-                res = await fetch(url, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json', ...authHeaders },
-                    body: JSON.stringify(payload)
-                });
-            } else {
-                // POST: el controller usa Multer, hay que enviar FormData
-                const formData = new FormData();
-                formData.append('nombre', nombre);
-                formData.append('cargo', cargo);
-                if (email) formData.append('email', email);
-                if (telefono) formData.append('telefono', telefono);
-                if (fotoFile) formData.append('foto', fotoFile);
+                // Usar Promise para esperar a que se lea la foto
+                foto = await new Promise((resolve, reject) => {
+                    const reader = new FileReader();
 
-                // Sin Content-Type: el navegador agrega el boundary correcto
-                delete authHeaders['Content-Type'];
+                    reader.onload = (event) => {
+                        resolve(event.target.result);
+                    };
 
-                res = await fetch(url, {
-                    method: 'POST',
-                    headers: authHeaders,
-                    body: formData
+                    reader.onerror = () => {
+                        reject(new Error('Error al leer la foto'));
+                    };
+
+                    reader.readAsDataURL(file);
+                }).catch(err => {
+                    alert(err.message);
+                    return null;
                 });
             }
 
+            if (foto !== null || !fotoInput || !fotoInput.files || !fotoInput.files[0]) {
+                await guardarAutoridad(nombre, cargo, email, telefono, foto);
+            }
+        });
+    }
+
+    async function guardarAutoridad(nombre, cargo, email, telefono, foto) {
+        const method = editingAutoridadId ? 'PUT' : 'POST';
+        const url = editingAutoridadId ? '/api/autoridades/' + editingAutoridadId : '/api/autoridades';
+
+        const payload = {
+            nombre: nombre.trim(),
+            cargo: cargo.trim()
+        };
+
+        // Solo agregar campos opcionales si tienen valor
+        if (email && email.trim()) payload.email = email.trim();
+        if (telefono && telefono.trim()) payload.telefono = telefono.trim();
+        if (foto) {
+            console.log('Foto tamaño:', foto.length, 'bytes');
+            payload.foto = foto;
+        }
+
+        console.log('Enviando payload completo:', {
+            ...payload,
+            foto: payload.foto ? `foto base64 (${payload.foto.length} bytes)` : null
+        });
+
+        try {
+            const res = await fetch(url, {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...getAuthHeaders()
+                },
+                body: JSON.stringify(payload)
+            });
+
             if (res.ok) {
-                alert(isEditing ? 'Autoridad actualizada correctamente' : 'Autoridad creada correctamente');
+                alert(editingAutoridadId ? 'Autoridad actualizada correctamente' : 'Autoridad creada correctamente');
                 closeAutoridadModal();
                 await loadAdminAutoridades();
             } else {
