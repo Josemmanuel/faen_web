@@ -39,28 +39,7 @@ function getAuthHeaders() {
     };
 }
 
-// AÑADE ESTA FUNCIÓN AL FINAL DE TU APP.JS
-async function logoutSession() {
-    if (!confirm('¿Estás seguro de que deseas cerrar sesión?')) return;
 
-    try {
-        // Avisamos al servidor para que borre la Cookie
-        await fetch('/api/auth/logout', {
-            method: 'POST',
-            headers: getAuthHeaders()
-        });
-    } catch (e) {
-        console.error('Error en logout de servidor');
-    }
-
-    // Limpiamos todo el rastro local
-    localStorage.removeItem('faen_auth_token');
-    localStorage.removeItem('faen_auth_user');
-    sessionStorage.clear();
-
-    // Redirección forzada al login
-    window.location.href = 'login.html';
-}
 
 function updateSessionActivity() {
     sessionStorage.setItem('admin_last_activity', Date.now().toString());
@@ -96,7 +75,10 @@ function logoutSession() {
     sessionStorage.removeItem('admin_pass');
     sessionStorage.removeItem('admin_authenticated');
     sessionStorage.removeItem('admin_last_activity');
-    window.location.replace('/login.html?expired=true');  // ← sin alert, redirige al login
+    // Limpiar token JWT para que admin-guard.js no deje pasar al usuario
+    localStorage.removeItem("faen_auth_token");
+    localStorage.removeItem("faen_auth_user");
+    window.location.replace("/login.html?expired=true");
 }
 
 function showLoginModal() {
@@ -193,16 +175,16 @@ async function loadCarousel() {
             slide.className = 'carousel-slide';
 
             // Normalización de ruta para evitar el error 404 en el Index
-            let src = photo.ruta || photo.url || ''; 
+            let src = photo.ruta || photo.url || '';
             if (src && !src.startsWith('/') && !src.startsWith('http')) {
                 src = '/' + src;
             }
 
-            slide.innerHTML = 
+            slide.innerHTML =
                 '<img src="' + src + '?v=' + Date.now() + '" alt="' + escapeHtml(photo.titulo) + '">' +
                 '<div class="carousel-slide-overlay">' +
-                    '<div class="carousel-slide-title">' + escapeHtml(photo.titulo) + '</div>' +
-                    '<p class="carousel-slide-date">' + escapeHtml(photo.fecha) + '</p>' +
+                '<div class="carousel-slide-title">' + escapeHtml(photo.titulo) + '</div>' +
+                '<p class="carousel-slide-date">' + escapeHtml(photo.fecha) + '</p>' +
                 '</div>';
             carouselTrack.appendChild(slide);
 
@@ -610,7 +592,7 @@ async function loadGaleria() {
             // --- LÓGICA DE RUTA ABSOLUTA ---
             // Usamos 'foto.ruta' o 'foto.url' según lo que envíe tu backend.
             // Si el backend envía "uploads/archivo.jpg", le ponemos la "/" inicial.
-            let src = foto.ruta || foto.url || ''; 
+            let src = foto.ruta || foto.url || '';
             if (src && !src.startsWith('/') && !src.startsWith('http')) {
                 src = '/' + src;
             }
@@ -798,13 +780,13 @@ async function loadAdminAutoridades() {
 
         data.forEach(autoridad => {
             const row = document.createElement('tr');
-            
-            // Validamos la foto: si es nula, vacía o el string del error, usamos el placeholder
-            const tieneFoto = autoridad.foto && 
-                              autoridad.foto !== '' && 
-                              autoridad.foto !== '/uploads/default-avatar.png';
 
-            const fotoHtml = tieneFoto 
+            // Validamos la foto: si es nula, vacía o el string del error, usamos el placeholder
+            const tieneFoto = autoridad.foto &&
+                autoridad.foto !== '' &&
+                autoridad.foto !== '/uploads/default-avatar.png';
+
+            const fotoHtml = tieneFoto
                 ? `<img src="${autoridad.foto}" 
                         class="tabla-imagen" 
                         style="width:50px; height:50px; border-radius:50%; object-fit:cover;"
@@ -838,15 +820,12 @@ function vincularEventosAutoridades() {
     });
 
     document.querySelectorAll('.delete-autoridad-btn').forEach(btn => {
-        btn.onclick = (e) => {
-            const id = e.currentTarget.getAttribute('data-id');
-            // Llamamos a la función de eliminar que creamos anteriormente
-            if (typeof removeAutoridad === 'function') {
-                removeAutoridad(id);
-            } else {
-                console.error("La función removeAutoridad no existe en app.js");
-            }
-        };
+        btn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            // ✅ Usar currentTarget en lugar de target
+            const id = e.currentTarget.dataset.id;
+            await deleteAutoridad(id);
+        });
     });
 }
 
@@ -1491,7 +1470,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // GALERIA MODAL SETUP
-const modalFoto = document.getElementById('modal-foto');
+    const modalFoto = document.getElementById('modal-foto');
     const btnSubirFoto = document.getElementById('btn-subir-foto');
     const modalFotoClose = document.getElementById('modal-foto-close');
     const fotoFormCancel = document.getElementById('foto-form-cancel');
@@ -1564,7 +1543,7 @@ const modalFoto = document.getElementById('modal-foto');
 
             // Obtenemos cabeceras (Token)
             const headers = typeof getAuthHeaders === 'function' ? getAuthHeaders() : {};
-            
+
             // ELIMINAR Content-Type: El navegador debe generar el boundary de multipart/form-data solo
             if (headers['Content-Type']) {
                 delete headers['Content-Type'];
@@ -1814,86 +1793,70 @@ const modalFoto = document.getElementById('modal-foto');
             const telefono = document.getElementById('autoridad-telefono').value.trim();
             const fotoInput = document.getElementById('autoridad-foto');
 
-            // Validación
-            if (!nombre) {
-                alert('Por favor ingresa el nombre');
+            if (!nombre) { alert('Por favor ingresa el nombre'); return; }
+            if (!cargo) { alert('Por favor ingresa el cargo'); return; }
+
+            const fotoFile = fotoInput && fotoInput.files && fotoInput.files[0] ? fotoInput.files[0] : null;
+
+            if (fotoFile && fotoFile.size > 5 * 1024 * 1024) {
+                alert('La imagen es muy grande. Por favor usa una imagen menor a 5MB');
                 return;
             }
-            if (!cargo) {
-                alert('Por favor ingresa el cargo');
-                return;
-            }
 
-            // Procesar foto si existe
-            let foto = null;
-            if (fotoInput && fotoInput.files && fotoInput.files[0]) {
-                const file = fotoInput.files[0];
-
-                // Limitar tamaño de imagen
-                if (file.size > 500000) {
-                    alert('La imagen es muy grande. Por favor usa una imagen menor a 500KB');
-                    return;
-                }
-
-                // Usar Promise para esperar a que se lea la foto
-                foto = await new Promise((resolve, reject) => {
-                    const reader = new FileReader();
-
-                    reader.onload = (event) => {
-                        resolve(event.target.result);
-                    };
-
-                    reader.onerror = () => {
-                        reject(new Error('Error al leer la foto'));
-                    };
-
-                    reader.readAsDataURL(file);
-                }).catch(err => {
-                    alert(err.message);
-                    return null;
-                });
-            }
-
-            if (foto !== null || !fotoInput || !fotoInput.files || !fotoInput.files[0]) {
-                await guardarAutoridad(nombre, cargo, email, telefono, foto);
-            }
+            await guardarAutoridad(nombre, cargo, email, telefono, fotoFile);
         });
     }
 
-    async function guardarAutoridad(nombre, cargo, email, telefono, foto) {
-        const method = editingAutoridadId ? 'PUT' : 'POST';
-        const url = editingAutoridadId ? '/api/autoridades/' + editingAutoridadId : '/api/autoridades';
-
-        const payload = {
-            nombre: nombre.trim(),
-            cargo: cargo.trim()
-        };
-
-        // Solo agregar campos opcionales si tienen valor
-        if (email && email.trim()) payload.email = email.trim();
-        if (telefono && telefono.trim()) payload.telefono = telefono.trim();
-        if (foto) {
-            console.log('Foto tamaño:', foto.length, 'bytes');
-            payload.foto = foto;
-        }
-
-        console.log('Enviando payload completo:', {
-            ...payload,
-            foto: payload.foto ? `foto base64 (${payload.foto.length} bytes)` : null
-        });
+    async function guardarAutoridad(nombre, cargo, email, telefono, fotoFile) {
+        const isEditing = !!editingAutoridadId;
+        const url = isEditing ? '/api/autoridades/' + editingAutoridadId : '/api/autoridades';
+        const authHeaders = getAuthHeaders();
 
         try {
-            const res = await fetch(url, {
-                method: method,
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...getAuthHeaders()
-                },
-                body: JSON.stringify(payload)
-            });
+            let res;
+
+            if (isEditing) {
+                // PUT: el controller acepta JSON con foto en base64
+                const payload = { nombre, cargo };
+                if (email) payload.email = email;
+                if (telefono) payload.telefono = telefono;
+
+                if (fotoFile) {
+                    // Convertir a base64 para el PUT
+                    payload.foto = await new Promise((resolve, reject) => {
+                        const reader = new FileReader();
+                        reader.onload = (ev) => resolve(ev.target.result);
+                        reader.onerror = () => reject(new Error('Error al leer la foto'));
+                        reader.readAsDataURL(fotoFile);
+                    });
+                }
+
+                res = await fetch(url, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', ...authHeaders },
+                    body: JSON.stringify(payload)
+                });
+            } else {
+                // POST: el controller usa Multer, hay que enviar FormData
+                const formData = new FormData();
+                formData.append('nombre', nombre);
+                formData.append('cargo', cargo);
+                if (email) formData.append('email', email);
+                if (telefono) formData.append('telefono', telefono);
+                if (fotoFile) formData.append('foto', fotoFile);
+
+                // Sin Content-Type: el navegador agrega el boundary correcto
+                delete authHeaders['Content-Type'];
+
+                res = await fetch(url, {
+                    method: 'POST',
+                    headers: authHeaders,
+                    body: formData
+                });
+            }
 
             if (res.ok) {
-                alert(editingAutoridadId ? 'Autoridad actualizada correctamente' : 'Autoridad creada correctamente');
+                alert(isEditing ? 'Autoridad actualizada correctamente' : 'Autoridad creada correctamente');
                 closeAutoridadModal();
                 await loadAdminAutoridades();
             } else {
