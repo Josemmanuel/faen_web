@@ -66,16 +66,23 @@ function hasPermission(module, level) {
   const user = getCurrentUser();
   if (!user) return false;
 
+  // Admin y superadmin siempre tienen acceso total
+  if (user.role === 'admin' || user.role === 'superadmin') return true;
+
   const userLevel = user.permissions?.[module] || 'nada';
 
   const hierarchy = { 'nada': 0, 'solo ver': 1, 'completo': 2 };
 
-  // nivel requerido desde data-permission-level (puede venir en inglés del HTML)
-  // mapeamos por si quedaron atributos en inglés
-  const legacyMap = { 'none': 'nada', 'read': 'solo ver', 'create': 'completo', 'update': 'completo', 'delete': 'completo' };
-  const normalizedRequired = legacyMap[level] || level;
+  // Compatibilidad con valores viejos que puedan quedar en el JSON
+  const legacyMap = {
+    'none': 'nada', 'read': 'solo ver', 'update': 'completo',
+    'create': 'completo', 'delete': 'completo'
+  };
 
-  return (hierarchy[userLevel] ?? 0) >= (hierarchy[normalizedRequired] ?? 0);
+  const normalizedUser     = legacyMap[userLevel]  || userLevel;
+  const normalizedRequired = legacyMap[level]       || level;
+
+  return (hierarchy[normalizedUser] ?? 0) >= (hierarchy[normalizedRequired] ?? 0);
 }
 
 async function authenticatedFetch(url, options = {}) {
